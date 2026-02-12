@@ -83,8 +83,6 @@ env:
 
 jobs:
   activation:
-    needs: pre_activation
-    if: (needs.pre_activation.result == 'skipped') || (needs.pre_activation.outputs.activated == 'true')
     runs-on: ${{ inputs.os == 'ubuntu-20.04' && fromJson('[''self-hosted'', ''1ES.Pool=ubuntu-20.04-forbuild'']') || inputs.os }}
     container:
       image: ${{ (inputs.plat == 'linux' && format('ghcr.io/microsoft/msquic/linux-build-xcomp:{0}-cross', inputs.os)) || '' }}
