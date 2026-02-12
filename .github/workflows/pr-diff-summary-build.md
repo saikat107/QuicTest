@@ -8,7 +8,6 @@ permissions:
   contents: read
   pull-requests: read
   issues: read
-container: ghcr.io/microsoft/msquic/linux-build-xcomp:ubuntu-22.04-cross
 tools:
   github:
     toolsets: [default]
@@ -61,7 +60,10 @@ For this pull request (#${{ github.event.pull_request.number }}), perform the fo
 
 ### 3. Build the Repository
 
-1. Run the build script using pwsh: `pwsh ./scripts/build.ps1`
+1. Run the build inside the MsQuic build container using Docker:
+   ```bash
+   docker run --rm -v $(pwd):/src -w /src ghcr.io/microsoft/msquic/linux-build-xcomp:ubuntu-22.04-cross pwsh ./scripts/build.ps1
+   ```
 2. Capture the build output (both stdout and stderr).
 3. Create a build report file named `pr-${{ github.event.pull_request.number }}-build-result.txt` in the current working directory containing:
    - Build status (success or failure)
@@ -81,7 +83,7 @@ After completing all tasks, post a comment on the PR using the `add-comment` saf
 - Execute tasks sequentially in the order specified.
 - If the build fails, still create the build result file with the error information.
 - Keep the PR comment concise but informative.
-- Use PowerShell (`pwsh`) to run the build script since this is a cross-platform build environment.
+- Use Docker to run the build inside the `ghcr.io/microsoft/msquic/linux-build-xcomp:ubuntu-22.04-cross` container.
 - All output files must be created in the current working directory so post-steps can upload them as artifacts.
 
 ## Safe Outputs

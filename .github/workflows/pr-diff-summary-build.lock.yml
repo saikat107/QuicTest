@@ -21,7 +21,7 @@
 #
 # Creates diff of PR changes, summarizes it in natural language, and builds the repository
 #
-# frontmatter-hash: f522cec4d9de7280df9e6f31580371e689fec1fbc39f55f6badc303f9773e617
+# frontmatter-hash: 8b143c98d8e8cccb5d047e362c28a75bbd313b7f666843a04f887fbe52898471
 
 name: "PR Diff Summary and Build Workflow"
 "on":
@@ -69,7 +69,6 @@ jobs:
   agent:
     needs: activation
     runs-on: ubuntu-latest
-    container: ghcr.io/microsoft/msquic/linux-build-xcomp:ubuntu-22.04-cross
     permissions:
       contents: read
       issues: read
