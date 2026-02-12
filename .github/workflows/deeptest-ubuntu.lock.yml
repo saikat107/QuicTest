@@ -29,14 +29,46 @@ name: "Deeptest Ubuntu"
         description: Relative path to the source file (e.g., src/core/connection.c)
         required: false
         type: string
+      plat:
+        required: false
+        type: string
+        default: 'linux'
+      os:
+        required: false
+        type: string
+        default: 'ubuntu-22.04'
+      arch:
+        required: false
+        default: 'x64'
+        type: string
+      tls:
+        required: false
+        default: 'quictls'
+        type: string
   workflow_dispatch:
     inputs:
       source_file:
         description: Relative path to the source file (e.g., src/core/connection.c)
         required: true
         type: string
-
-permissions: {}
+      plat:
+        required: false
+        type: string
+        default: 'linux'
+      os:
+        required: false
+        type: string
+        default: 'ubuntu-22.04'
+      arch:
+        required: false
+        default: 'x64'
+        type: string
+      tls:
+        required: false
+        default: 'quictls'
+        type: string
+permissions:
+  contents: read
 
 concurrency:
   group: "gh-aw-${{ github.workflow }}"
@@ -53,7 +85,9 @@ jobs:
   activation:
     needs: pre_activation
     if: (needs.pre_activation.result == 'skipped') || (needs.pre_activation.outputs.activated == 'true')
-    runs-on: ubuntu-slim
+    runs-on: ${{ inputs.os == 'ubuntu-20.04' && fromJson('[''self-hosted'', ''1ES.Pool=ubuntu-20.04-forbuild'']') || inputs.os }}
+    container:
+      image: ${{ (inputs.plat == 'linux' && format('ghcr.io/microsoft/msquic/linux-build-xcomp:{0}-cross', inputs.os)) || '' }}
     permissions:
       contents: read
     outputs:
@@ -77,7 +111,9 @@ jobs:
 
   agent:
     needs: activation
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.os == 'ubuntu-20.04' && fromJson('[''self-hosted'', ''1ES.Pool=ubuntu-20.04-forbuild'']') || inputs.os }}
+    container:
+      image: ${{ (inputs.plat == 'linux' && format('ghcr.io/microsoft/msquic/linux-build-xcomp:{0}-cross', inputs.os)) || '' }}
     permissions:
       contents: read
       issues: read
@@ -692,7 +728,9 @@ jobs:
       - detection
       - safe_outputs
     if: (always()) && (needs.agent.result != 'skipped')
-    runs-on: ubuntu-slim
+    runs-on: ${{ inputs.os == 'ubuntu-20.04' && fromJson('[''self-hosted'', ''1ES.Pool=ubuntu-20.04-forbuild'']') || inputs.os }}
+    container:
+      image: ${{ (inputs.plat == 'linux' && format('ghcr.io/microsoft/msquic/linux-build-xcomp:{0}-cross', inputs.os)) || '' }}
     permissions:
       contents: read
       discussions: write
@@ -808,7 +846,9 @@ jobs:
   detection:
     needs: agent
     if: needs.agent.outputs.output_types != '' || needs.agent.outputs.has_patch == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.os == 'ubuntu-20.04' && fromJson('[''self-hosted'', ''1ES.Pool=ubuntu-20.04-forbuild'']') || inputs.os }}
+    container:
+      image: ${{ (inputs.plat == 'linux' && format('ghcr.io/microsoft/msquic/linux-build-xcomp:{0}-cross', inputs.os)) || '' }}
     permissions: {}
     concurrency:
       group: "gh-aw-custom-${{ github.workflow }}"
@@ -932,7 +972,9 @@ jobs:
   pre_activation:
     if: >
       ((github.event_name != 'schedule') && (github.event_name != 'merge_group')) && (github.event_name != 'workflow_dispatch')
-    runs-on: ubuntu-slim
+    runs-on: ${{ inputs.os == 'ubuntu-20.04' && fromJson('[''self-hosted'', ''1ES.Pool=ubuntu-20.04-forbuild'']') || inputs.os }}
+    container:
+      image: ${{ (inputs.plat == 'linux' && format('ghcr.io/microsoft/msquic/linux-build-xcomp:{0}-cross', inputs.os)) || '' }}
     outputs:
       activated: ${{ steps.check_membership.outputs.is_team_member == 'true' }}
     steps:
@@ -959,7 +1001,9 @@ jobs:
       - agent
       - detection
     if: ((!cancelled()) && (needs.agent.result != 'skipped')) && (needs.detection.outputs.success == 'true')
-    runs-on: ubuntu-slim
+    runs-on: ${{ inputs.os == 'ubuntu-20.04' && fromJson('[''self-hosted'', ''1ES.Pool=ubuntu-20.04-forbuild'']') || inputs.os }}
+    container:
+      image: ${{ (inputs.plat == 'linux' && format('ghcr.io/microsoft/msquic/linux-build-xcomp:{0}-cross', inputs.os)) || '' }}
     permissions:
       contents: write
       issues: write
