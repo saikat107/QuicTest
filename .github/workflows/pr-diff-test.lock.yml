@@ -19,42 +19,43 @@
 #   gh aw compile
 # For more information: https://github.com/github/gh-aw/blob/main/.github/aw/github-agentic-workflows.md
 #
-# Generate tests for a user-specified source file using Copilot CLI with DeepTest custom agent
+# Capture PR unified diff and run DeepTest-V0 agent on the changes
 #
-# frontmatter-hash: b70a1c5906f3f7a4c67145039eff59e520f1fe240213ab7ab2f82092ea0a560d
+# frontmatter-hash: 5674f7bfc300243cc6941de0ddc46683e703ffd12073fe991c33c052716589a3
 
-name: "Deeptest Ubuntu"
+name: "Pr Diff Test"
 "on":
-  workflow_call:
-    inputs:
-      source_file:
-        description: Relative path to the source file (e.g., src/core/connection.c)
-        required: false
-        type: string
+  pull_request:
+    types:
+    - opened
+    - synchronize
+    - reopened
   workflow_dispatch:
     inputs:
-      source_file:
-        description: Relative path to the source file (e.g., src/core/connection.c)
-        required: true
+      pr_number:
+        description: Pull request number to analyze
+        required: false
         type: string
 
 permissions: {}
 
 concurrency:
-  group: "gh-aw-${{ github.workflow }}"
+  group: "gh-aw-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}"
+  cancel-in-progress: true
 
-run-name: "Deeptest Ubuntu"
+run-name: "Pr Diff Test"
 
 env:
   COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
   GH_TOKEN: ${{ github.token }}
+  PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
   RUN_ID: ${{ github.run_id }}
-  SOURCE_FILE: ${{ inputs.source_file || github.event.inputs.source_file || 'src/core/loss_detection.c' }}
 
 jobs:
   activation:
     needs: pre_activation
-    if: needs.pre_activation.outputs.activated == 'true'
+    if: >
+      (needs.pre_activation.outputs.activated == 'true') && ((github.event_name != 'pull_request') || (github.event.pull_request.head.repo.id == github.repository_id))
     runs-on: ubuntu-slim
     permissions:
       contents: read
@@ -69,7 +70,7 @@ jobs:
       - name: Check workflow file timestamps
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
-          GH_AW_WORKFLOW_FILE: "deeptest-ubuntu.lock.yml"
+          GH_AW_WORKFLOW_FILE: "pr-diff-test.lock.yml"
         with:
           script: |
             const { setupGlobals } = require('/opt/gh-aw/actions/setup_globals.cjs');
@@ -84,8 +85,6 @@ jobs:
       contents: read
       issues: read
       pull-requests: read
-    concurrency:
-      group: "gh-aw-custom-${{ github.workflow }}"
     env:
       DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
       GH_AW_ASSETS_ALLOWED_EXTS: ""
@@ -155,7 +154,7 @@ jobs:
               version: "",
               agent_version: "",
               cli_version: "v0.43.7",
-              workflow_name: "Deeptest Ubuntu",
+              workflow_name: "Pr Diff Test",
               experimental: false,
               supports_tools_allowlist: false,
               supports_http_transport: false,
@@ -209,7 +208,7 @@ jobs:
           cat > /opt/gh-aw/safeoutputs/tools.json << 'GH_AW_SAFE_OUTPUTS_TOOLS_EOF'
           [
             {
-              "description": "Create a new GitHub pull request to propose code changes. Use this after making file edits to submit them for review and merging. The PR will be created from the current branch with your committed changes. For code review comments on an existing PR, use create_pull_request_review_comment instead. CONSTRAINTS: Maximum 1 pull request(s) can be created. Title will be prefixed with \"[DeepTest Run #${{ github.run_id }}] \". Labels [automation tests] will be automatically added.",
+              "description": "Create a new GitHub pull request to propose code changes. Use this after making file edits to submit them for review and merging. The PR will be created from the current branch with your committed changes. For code review comments on an existing PR, use create_pull_request_review_comment instead. CONSTRAINTS: Maximum 1 pull request(s) can be created. Title will be prefixed with \"[DeepTest PR #${{ github.event.pull_request.number || inputs.pr_number }} Run #${{ github.run_id }}] \". Labels [automation tests pr-diff-analysis] will be automatically added.",
               "inputSchema": {
                 "additionalProperties": false,
                 "properties": {
@@ -542,7 +541,7 @@ jobs:
           </system>
           GH_AW_PROMPT_EOF
           cat << 'GH_AW_PROMPT_EOF' >> "$GH_AW_PROMPT"
-          {{#runtime-import .github/workflows/deeptest-ubuntu.md}}
+          {{#runtime-import .github/workflows/pr-diff-test.md}}
           GH_AW_PROMPT_EOF
       - name: Substitute placeholders
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
@@ -594,6 +593,22 @@ jobs:
         run: bash /opt/gh-aw/actions/print_prompt_summary.sh
       - name: Clean git credentials
         run: bash /opt/gh-aw/actions/clean_git_credentials.sh
+      - name: Get PR Unified Diff
+        run: |
+          echo "Fetching unified diff for PR #$PR_NUMBER (Run ID: $RUN_ID)"
+
+          # Create directory for diff storage
+          mkdir -p pr-diffs
+
+          # Fetch the unified diff from GitHub API
+          gh pr diff $PR_NUMBER > pr-diffs/pr-$PR_NUMBER.diff
+
+          echo "Diff stored in pr-diffs/pr-$PR_NUMBER.diff"
+          echo "Diff size: $(wc -l < pr-diffs/pr-$PR_NUMBER.diff) lines"
+        env:
+          GH_AW_MCP_CONFIG: /tmp/gh-aw/mcp-config/mcp-servers.json
+          GH_AW_PROMPT: /tmp/gh-aw/aw-prompts/prompt.txt
+          GH_AW_SAFE_OUTPUTS: ${{ env.GH_AW_SAFE_OUTPUTS }}
       - name: Install Copilot CLI
         run: |
           gh extension install github/gh-copilot || echo "Copilot CLI already installed"
@@ -601,10 +616,18 @@ jobs:
           GH_AW_MCP_CONFIG: /tmp/gh-aw/mcp-config/mcp-servers.json
           GH_AW_PROMPT: /tmp/gh-aw/aw-prompts/prompt.txt
           GH_AW_SAFE_OUTPUTS: ${{ env.GH_AW_SAFE_OUTPUTS }}
-      - name: Run DeepTest via Copilot CLI
+      - name: Run DeepTest-V0 on PR Diff
         run: |
-          echo "Invoking DeepTest custom agent for: $SOURCE_FILE (Run ID: $RUN_ID)"
-          gh copilot --agent DeepTest -p "Generate comprehensive tests for the source file at $SOURCE_FILE. Analyze the file, identify testable functions, and create test cases following MsQuic test patterns in src/test/. After generating tests, create a PR with all changed files. Include the workflow run ID $RUN_ID in the PR title." --allow-all-tools
+          echo "Invoking DeepTest-V0 agent for PR #$PR_NUMBER (Run ID: $RUN_ID)"
+
+          # Pass the diff file to DeepTest agent
+          gh copilot --agent DeepTest -p "Analyze the unified diff stored in pr-diffs/pr-$PR_NUMBER.diff and generate comprehensive tests for all modified functions and code paths. Focus on:
+          1. Functions that were added or modified in this PR
+          2. Edge cases and boundary conditions for the changes
+          3. Error handling and resource cleanup
+          4. State transitions affected by the changes
+
+          Follow MsQuic test patterns in src/test/. After generating tests, create a PR with all test files. Include the workflow run ID $RUN_ID in the PR title." --allow-all-tools
         env:
           GH_AW_MCP_CONFIG: /tmp/gh-aw/mcp-config/mcp-servers.json
           GH_AW_PROMPT: /tmp/gh-aw/aw-prompts/prompt.txt
@@ -749,7 +772,7 @@ jobs:
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
           GH_AW_NOOP_MAX: 1
-          GH_AW_WORKFLOW_NAME: "Deeptest Ubuntu"
+          GH_AW_WORKFLOW_NAME: "Pr Diff Test"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -762,7 +785,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "Deeptest Ubuntu"
+          GH_AW_WORKFLOW_NAME: "Pr Diff Test"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -775,10 +798,10 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "Deeptest Ubuntu"
+          GH_AW_WORKFLOW_NAME: "Pr Diff Test"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
-          GH_AW_WORKFLOW_ID: "deeptest-ubuntu"
+          GH_AW_WORKFLOW_ID: "pr-diff-test"
           GH_AW_CHECKOUT_PR_SUCCESS: ${{ needs.agent.outputs.checkout_pr_success }}
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
@@ -792,7 +815,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "Deeptest Ubuntu"
+          GH_AW_WORKFLOW_NAME: "Pr Diff Test"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
           GH_AW_NOOP_MESSAGE: ${{ steps.noop.outputs.noop_message }}
@@ -809,7 +832,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "Deeptest Ubuntu"
+          GH_AW_WORKFLOW_NAME: "Pr Diff Test"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
@@ -826,7 +849,7 @@ jobs:
           GH_AW_COMMENT_ID: ${{ needs.activation.outputs.comment_id }}
           GH_AW_COMMENT_REPO: ${{ needs.activation.outputs.comment_repo }}
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          GH_AW_WORKFLOW_NAME: "Deeptest Ubuntu"
+          GH_AW_WORKFLOW_NAME: "Pr Diff Test"
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
           GH_AW_DETECTION_CONCLUSION: ${{ needs.detection.result }}
         with:
@@ -842,8 +865,6 @@ jobs:
     if: needs.agent.outputs.output_types != '' || needs.agent.outputs.has_patch == 'true'
     runs-on: ubuntu-latest
     permissions: {}
-    concurrency:
-      group: "gh-aw-custom-${{ github.workflow }}"
     timeout-minutes: 10
     outputs:
       success: ${{ steps.parse_results.outputs.success }}
@@ -872,8 +893,8 @@ jobs:
       - name: Setup threat detection
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
-          WORKFLOW_NAME: "Deeptest Ubuntu"
-          WORKFLOW_DESCRIPTION: "Generate tests for a user-specified source file using Copilot CLI with DeepTest custom agent"
+          WORKFLOW_NAME: "Pr Diff Test"
+          WORKFLOW_DESCRIPTION: "Capture PR unified diff and run DeepTest-V0 agent on the changes"
           HAS_PATCH: ${{ needs.agent.outputs.has_patch }}
         with:
           script: |
@@ -885,16 +906,39 @@ jobs:
         run: |
           mkdir -p /tmp/gh-aw/threat-detection
           touch /tmp/gh-aw/threat-detection/detection.log
+      - name: Get PR Unified Diff
+        run: |
+          echo "Fetching unified diff for PR #$PR_NUMBER (Run ID: $RUN_ID)"
+
+          # Create directory for diff storage
+          mkdir -p pr-diffs
+
+          # Fetch the unified diff from GitHub API
+          gh pr diff $PR_NUMBER > pr-diffs/pr-$PR_NUMBER.diff
+
+          echo "Diff stored in pr-diffs/pr-$PR_NUMBER.diff"
+          echo "Diff size: $(wc -l < pr-diffs/pr-$PR_NUMBER.diff) lines"
+        env:
+          GH_AW_MCP_CONFIG: /tmp/gh-aw/mcp-config/mcp-servers.json
+          GH_AW_PROMPT: /tmp/gh-aw/aw-prompts/prompt.txt
       - name: Install Copilot CLI
         run: |
           gh extension install github/gh-copilot || echo "Copilot CLI already installed"
         env:
           GH_AW_MCP_CONFIG: /tmp/gh-aw/mcp-config/mcp-servers.json
           GH_AW_PROMPT: /tmp/gh-aw/aw-prompts/prompt.txt
-      - name: Run DeepTest via Copilot CLI
+      - name: Run DeepTest-V0 on PR Diff
         run: |
-          echo "Invoking DeepTest custom agent for: $SOURCE_FILE (Run ID: $RUN_ID)"
-          gh copilot --agent DeepTest -p "Generate comprehensive tests for the source file at $SOURCE_FILE. Analyze the file, identify testable functions, and create test cases following MsQuic test patterns in src/test/. After generating tests, create a PR with all changed files. Include the workflow run ID $RUN_ID in the PR title." --allow-all-tools
+          echo "Invoking DeepTest-V0 agent for PR #$PR_NUMBER (Run ID: $RUN_ID)"
+
+          # Pass the diff file to DeepTest agent
+          gh copilot --agent DeepTest -p "Analyze the unified diff stored in pr-diffs/pr-$PR_NUMBER.diff and generate comprehensive tests for all modified functions and code paths. Focus on:
+          1. Functions that were added or modified in this PR
+          2. Edge cases and boundary conditions for the changes
+          3. Error handling and resource cleanup
+          4. State transitions affected by the changes
+
+          Follow MsQuic test patterns in src/test/. After generating tests, create a PR with all test files. Include the workflow run ID $RUN_ID in the PR title." --allow-all-tools
         env:
           GH_AW_MCP_CONFIG: /tmp/gh-aw/mcp-config/mcp-servers.json
           GH_AW_PROMPT: /tmp/gh-aw/aw-prompts/prompt.txt
@@ -920,6 +964,7 @@ jobs:
           if-no-files-found: ignore
 
   pre_activation:
+    if: (github.event_name != 'pull_request') || (github.event.pull_request.head.repo.id == github.repository_id)
     runs-on: ubuntu-slim
     outputs:
       activated: ${{ steps.check_membership.outputs.is_team_member == 'true' }}
@@ -955,8 +1000,8 @@ jobs:
     timeout-minutes: 15
     env:
       GH_AW_ENGINE_ID: "custom"
-      GH_AW_WORKFLOW_ID: "deeptest-ubuntu"
-      GH_AW_WORKFLOW_NAME: "Deeptest Ubuntu"
+      GH_AW_WORKFLOW_ID: "pr-diff-test"
+      GH_AW_WORKFLOW_NAME: "Pr Diff Test"
     outputs:
       create_discussion_error_count: ${{ steps.process_safe_outputs.outputs.create_discussion_error_count }}
       create_discussion_errors: ${{ steps.process_safe_outputs.outputs.create_discussion_errors }}
@@ -1009,7 +1054,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"create_pull_request\":{\"base_branch\":\"${{ github.ref_name }}\",\"labels\":[\"automation\",\"tests\"],\"max\":1,\"max_patch_size\":1024,\"title_prefix\":\"[DeepTest Run #${{ github.run_id }}] \"},\"missing_data\":{},\"missing_tool\":{}}"
+          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"create_pull_request\":{\"base_branch\":\"${{ github.ref_name }}\",\"labels\":[\"automation\",\"tests\",\"pr-diff-analysis\"],\"max\":1,\"max_patch_size\":1024,\"title_prefix\":\"[DeepTest PR #${{ github.event.pull_request.number || inputs.pr_number }} Run #${{ github.run_id }}] \"},\"missing_data\":{},\"missing_tool\":{}}"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
