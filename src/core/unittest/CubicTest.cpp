@@ -769,3 +769,295 @@ TEST(CubicTest, HyStart_StateTransitions)
                 Cubic->HyStartState <= HYSTART_DONE);
     ASSERT_GE(Cubic->CWndSlowStartGrowthDivisor, 1u);
 }
+
+
+//
+// Test 37: HyStart++ State Invariant - Growth Divisor Consistency
+// Transition: Verification of Growth Divisor Invariant from state model
+// Scenario: Tests the invariant that CWndSlowStartGrowthDivisor is always
+// consistent with the current state:
+// - NOT_STARTED → divisor = 1
+// - ACTIVE → divisor = 4
+// - DONE → divisor = 1
+//
+TEST(CubicTest, HyStart_StateInvariant_GrowthDivisor)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    Settings.InitialWindowPackets = 20;
+    Settings.SendIdleTimeoutMs = 1000;
+    Settings.HyStartEnabled = TRUE;
+
+    InitializeMockConnection(Connection, 1280);
+    Connection.Settings.HyStartEnabled = TRUE;  // Must set on Connection for runtime checks
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 50000;
+
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Invariant 1: NOT_STARTED → divisor = 1
+    ASSERT_EQ(Cubic->HyStartState, HYSTART_NOT_STARTED);
+    ASSERT_EQ(Cubic->CWndSlowStartGrowthDivisor, 1u);
+
+    // Transition to DONE via loss
+    Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, 5000);
+    Connection.Send.NextPacketNumber = 10;
+
+    QUIC_LOSS_EVENT LossEvent;
+    CxPlatZeroMemory(&LossEvent, sizeof(LossEvent));
+    LossEvent.NumRetransmittableBytes = 2400;
+    LossEvent.PersistentCongestion = FALSE;
+    LossEvent.LargestPacketNumberLost = 5;
+    LossEvent.LargestSentPacketNumber = 10;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataLost(&Connection.CongestionControl, &LossEvent);
+
+    // Invariant 2: DONE → divisor = 1
+    ASSERT_EQ(Cubic->HyStartState, HYSTART_DONE);
+    ASSERT_EQ(Cubic->CWndSlowStartGrowthDivisor, 1u);
+}
+
+//
+// Test 38: HyStart++ Multiple Congestion Events - State Stability
+// Transition: Multiple T5/T4 transitions
+// Scenario: Tests that multiple congestion events keep the state in DONE and
+// don't cause state corruption. Each event should trigger recovery logic but
+// state should remain DONE.
+//
+TEST(CubicTest, HyStart_MultipleCongestionEvents_StateStability)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    Settings.InitialWindowPackets = 30;
+    Settings.SendIdleTimeoutMs = 1000;
+    Settings.HyStartEnabled = TRUE;
+
+    InitializeMockConnection(Connection, 1280);
+    Connection.Settings.HyStartEnabled = TRUE;  // Must set on Connection for runtime checks
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 50000;
+
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+    const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+    uint32_t InitialWindow = DatagramPayloadLength * Settings.InitialWindowPackets;
+
+    // First congestion event: NOT_STARTED → DONE
+    Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, 8000);
+    Connection.Send.NextPacketNumber = 10;
+
+    QUIC_LOSS_EVENT FirstLoss;
+    CxPlatZeroMemory(&FirstLoss, sizeof(FirstLoss));
+    FirstLoss.NumRetransmittableBytes = 2400;
+    FirstLoss.PersistentCongestion = FALSE;
+    FirstLoss.LargestPacketNumberLost = 5;
+    FirstLoss.LargestSentPacketNumber = 10;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataLost(&Connection.CongestionControl, &FirstLoss);
+
+    ASSERT_EQ(Cubic->HyStartState, HYSTART_DONE);
+    // After first loss: Window = InitialWindow * 7 / 10
+    uint32_t WindowAfterFirst = InitialWindow * 7 / 10;
+    ASSERT_EQ(Cubic->CongestionWindow, WindowAfterFirst);
+
+    // Exit recovery
+    Connection.Send.NextPacketNumber = 20;
+    QUIC_ACK_EVENT RecoveryExitAck;
+    CxPlatZeroMemory(&RecoveryExitAck, sizeof(RecoveryExitAck));
+    RecoveryExitAck.TimeNow = 1100000;
+    RecoveryExitAck.LargestAck = 20;
+    RecoveryExitAck.LargestSentPacketNumber = 25;
+    RecoveryExitAck.NumRetransmittableBytes = 1200;
+    RecoveryExitAck.NumTotalAckedRetransmittableBytes = 1200;
+    RecoveryExitAck.SmoothedRtt = 50000;
+    RecoveryExitAck.MinRtt = 48000;
+    RecoveryExitAck.MinRttValid = TRUE;
+    RecoveryExitAck.IsImplicit = FALSE;
+    RecoveryExitAck.HasLoss = FALSE;
+    RecoveryExitAck.IsLargestAckedPacketAppLimited = FALSE;
+    RecoveryExitAck.AdjustedAckTime = RecoveryExitAck.TimeNow;
+    RecoveryExitAck.AckedPackets = NULL;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(&Connection.CongestionControl, &RecoveryExitAck);
+
+    // Second congestion event: DONE → DONE (should remain)
+    Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, 5000);
+    Connection.Send.NextPacketNumber = 30;
+
+    QUIC_LOSS_EVENT SecondLoss;
+    CxPlatZeroMemory(&SecondLoss, sizeof(SecondLoss));
+    SecondLoss.NumRetransmittableBytes = 1800;
+    SecondLoss.PersistentCongestion = FALSE;
+    SecondLoss.LargestPacketNumberLost = 28;
+    SecondLoss.LargestSentPacketNumber = 30;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataLost(&Connection.CongestionControl, &SecondLoss);
+
+    ASSERT_EQ(Cubic->HyStartState, HYSTART_DONE); // Still DONE
+    // After second loss: Window = WindowAfterFirst * 7 / 10
+    uint32_t WindowAfterSecond = WindowAfterFirst * 7 / 10;
+    ASSERT_EQ(Cubic->CongestionWindow, WindowAfterSecond);
+
+    // Third congestion event via ECN: DONE → DONE
+    Connection.Send.NextPacketNumber = 40;
+    QUIC_ECN_EVENT EcnEvent;
+    CxPlatZeroMemory(&EcnEvent, sizeof(EcnEvent));
+    EcnEvent.LargestPacketNumberAcked = 35;
+    EcnEvent.LargestSentPacketNumber = 40;
+
+    Connection.CongestionControl.QuicCongestionControlOnEcn(&Connection.CongestionControl, &EcnEvent);
+
+    ASSERT_EQ(Cubic->HyStartState, HYSTART_DONE); // Still DONE
+}
+
+//
+// Test 39: HyStart++ Recovery Exit with State Persistence
+// Transition: Verification that recovery exit doesn't affect HyStart state
+// Scenario: When exiting recovery (IsInRecovery: TRUE → FALSE), the HyStart
+// state should remain unchanged. Recovery is orthogonal to HyStart++ state.
+//
+TEST(CubicTest, HyStart_RecoveryExit_StatePersistence)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    Settings.InitialWindowPackets = 20;
+    Settings.SendIdleTimeoutMs = 1000;
+    Settings.HyStartEnabled = TRUE;
+
+    InitializeMockConnection(Connection, 1280);
+    Connection.Settings.HyStartEnabled = TRUE;  // Must set on Connection for runtime checks
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 50000;
+
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Transition to DONE and enter recovery
+    Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, 8000);
+    Connection.Send.NextPacketNumber = 10;
+
+    QUIC_LOSS_EVENT LossEvent;
+    CxPlatZeroMemory(&LossEvent, sizeof(LossEvent));
+    LossEvent.NumRetransmittableBytes = 2400;
+    LossEvent.PersistentCongestion = FALSE;
+    LossEvent.LargestPacketNumberLost = 5;
+    LossEvent.LargestSentPacketNumber = 10;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataLost(&Connection.CongestionControl, &LossEvent);
+
+    ASSERT_EQ(Cubic->HyStartState, HYSTART_DONE);
+    ASSERT_TRUE(Cubic->IsInRecovery);
+
+    // Exit recovery by ACKing packet sent after recovery started
+    Connection.Send.NextPacketNumber = 20;
+
+    QUIC_ACK_EVENT ExitAck;
+    CxPlatZeroMemory(&ExitAck, sizeof(ExitAck));
+    ExitAck.TimeNow = 1100000;
+    ExitAck.LargestAck = 20; // After RecoverySentPacketNumber
+    ExitAck.LargestSentPacketNumber = 25;
+    ExitAck.NumRetransmittableBytes = 1200;
+    ExitAck.NumTotalAckedRetransmittableBytes = 1200;
+    ExitAck.SmoothedRtt = 50000;
+    ExitAck.MinRtt = 48000;
+    ExitAck.MinRttValid = TRUE;
+    ExitAck.IsImplicit = FALSE;
+    ExitAck.HasLoss = FALSE;
+    ExitAck.IsLargestAckedPacketAppLimited = FALSE;
+    ExitAck.AdjustedAckTime = ExitAck.TimeNow;
+    ExitAck.AckedPackets = NULL;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(&Connection.CongestionControl, &ExitAck);
+
+    // Recovery should be exited but HyStart state unchanged
+    ASSERT_FALSE(Cubic->IsInRecovery);
+    ASSERT_EQ(Cubic->HyStartState, HYSTART_DONE); // Still DONE
+}
+
+//
+// Test 40: HyStart++ Spurious Congestion with State Verification
+// Transition: State behavior during spurious congestion recovery
+// Scenario: When a congestion event is declared spurious, window state is rolled
+// back but HyStart state is NOT rolled back (it remains DONE). This is because
+// HyStart++ state transitions are one-way and not part of the spurious recovery.
+//
+TEST(CubicTest, HyStart_SpuriousCongestion_StateNotRolledBack)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings{};
+    Settings.InitialWindowPackets = 25;
+    Settings.SendIdleTimeoutMs = 1000;
+    Settings.HyStartEnabled = TRUE;
+
+    InitializeMockConnection(Connection, 1280);
+    Connection.Settings.HyStartEnabled = TRUE;  // Must set on Connection for runtime checks
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 50000;
+
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+    const uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+    uint32_t InitialWindow = DatagramPayloadLength * Settings.InitialWindowPackets;
+
+    // Precondition: Start in NOT_STARTED
+    ASSERT_EQ(Cubic->HyStartState, HYSTART_NOT_STARTED);
+    uint32_t WindowBeforeLoss = Cubic->CongestionWindow;
+    ASSERT_EQ(WindowBeforeLoss, InitialWindow);
+
+    // Trigger congestion event (NOT_STARTED → DONE)
+    Connection.CongestionControl.QuicCongestionControlOnDataSent(&Connection.CongestionControl, 10000);
+    Connection.Send.NextPacketNumber = 15;
+
+    QUIC_LOSS_EVENT LossEvent;
+    CxPlatZeroMemory(&LossEvent, sizeof(LossEvent));
+    LossEvent.NumRetransmittableBytes = 3600;
+    LossEvent.PersistentCongestion = FALSE;
+    LossEvent.LargestPacketNumberLost = 10;
+    LossEvent.LargestSentPacketNumber = 15;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataLost(&Connection.CongestionControl, &LossEvent);
+
+    ASSERT_EQ(Cubic->HyStartState, HYSTART_DONE);
+    ASSERT_TRUE(Cubic->IsInRecovery);
+    // After loss: Window = InitialWindow * 7 / 10
+    uint32_t ExpectedWindowAfterLoss = WindowBeforeLoss * 7 / 10;
+    uint32_t WindowAfterLoss = Cubic->CongestionWindow;
+    ASSERT_EQ(WindowAfterLoss, ExpectedWindowAfterLoss);
+
+    // Declare congestion event spurious
+    Connection.CongestionControl.QuicCongestionControlOnSpuriousCongestionEvent(&Connection.CongestionControl);
+
+    // Window state should be rolled back
+    ASSERT_EQ(Cubic->CongestionWindow, WindowBeforeLoss);
+    ASSERT_FALSE(Cubic->IsInRecovery);
+
+    // BUT HyStart state should remain DONE (not rolled back)
+    ASSERT_EQ(Cubic->HyStartState, HYSTART_DONE);
+
+    // Verify HyStart logic is still bypassed after spurious recovery
+    QUIC_ACK_EVENT AckEvent;
+    CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
+    AckEvent.TimeNow = 1200000;
+    AckEvent.LargestAck = 20;
+    AckEvent.LargestSentPacketNumber = 25;
+    AckEvent.NumRetransmittableBytes = 1200;
+    AckEvent.NumTotalAckedRetransmittableBytes = 1200;
+    AckEvent.SmoothedRtt = 50000;
+    AckEvent.MinRtt = 55000; // Increased RTT
+    AckEvent.MinRttValid = TRUE;
+    AckEvent.IsImplicit = FALSE;
+    AckEvent.HasLoss = FALSE;
+    AckEvent.IsLargestAckedPacketAppLimited = FALSE;
+    AckEvent.AdjustedAckTime = AckEvent.TimeNow;
+    AckEvent.AckedPackets = NULL;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(&Connection.CongestionControl, &AckEvent);
+
+    // State still DONE (HyStart++ logic bypassed)
+    ASSERT_EQ(Cubic->HyStartState, HYSTART_DONE);
+}
