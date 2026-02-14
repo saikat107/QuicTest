@@ -60,12 +60,7 @@ jobs:
 
             core.setOutput('files', JSON.stringify(files.map(f => f.filename)));
             core.setOutput('file_count', files.length);
-
-      - name: Install Perl
-        uses: shogo82148/actions-setup-perl@fa3bdcb0144a50651e317f30949bb4491e74a6e4
-        with:
-          perl-version: '5.34'
-
+            
       - name: Install NASM
         uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b
 
