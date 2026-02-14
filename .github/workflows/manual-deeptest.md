@@ -112,7 +112,7 @@ You must never attempt to run `git push` as it is not supported in this environm
 
 4. Iterate up to 5 times to improve coverage:
    - Generate high-quality tests using the **unit-test** skill (if focal function specified) or **component-test** skill. In the case of component-test, don't just write unit test, do your best to maximize coverage by generating integration tests as well. 
-   - Compute coverage using `scripts/make-coverage.sh`
+   - Compute coverage using `scripts/make-coverage.sh`. Make sure all the test pass and are of high quality. Feel free to use `test-quality-checker` skill for measuring quality of a test.
    - Stop early only if 100% coverage is achieved
 
 5. Store the final coverage report at `${{ env.COVERAGE_RESULT }}`.
@@ -133,3 +133,4 @@ You must never attempt to run `git push` as it is not supported in this environm
 - Code changes must only happen within the `src/` folder. If you notice any changes outside, revert them with `git restore` and print warnings.
 - You must complete at least 5 iterations if coverage is below 100%.
 - Do NOT stop before 5 iterations even if coverage improvements seem minimal.
+- Before committing, make sure the project build successfully and all the newly added tests pass. 
