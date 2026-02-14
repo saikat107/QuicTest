@@ -63,8 +63,9 @@ safe-outputs:
   create-pull-request:
     title-prefix: "[Deep Test]"
     labels: [deeptest]
-    draft: true
-    expires: 7d
+    draft: false
+    expires: 1y
+    reviewers: [saikat107, copilot]  
   noop:
 
 steps:
