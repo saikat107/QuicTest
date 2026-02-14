@@ -1,0 +1,150 @@
+name: List PR Files
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull Request number to analyze'
+        required: true
+        type: number
+      repo:
+        description: 'Repository in owner/repo format (e.g., microsoft/msquic). Defaults to current repo.'
+        required: false
+        type: string
+      filter:
+        description: 'Regex pattern to filter file paths (e.g., "^src/.*" to include only src/, "^(?!.github/).*" to exclude .github/)'
+        required: false
+        type: string
+        default: '.*'
+  workflow_call:
+    inputs:
+      pr_number:
+        description: 'Pull Request number to analyze'
+        required: false
+        type: number
+      repo:
+        description: 'Repository in owner/repo format (e.g., microsoft/msquic). Defaults to current repo.'
+        required: false
+        type: string
+      filter:
+        description: 'Regex pattern to filter file paths'
+        required: false
+        type: string
+        default: '.*'
+    outputs:
+      pr_files:
+        description: 'JSON object with pr_number, files_count, and files array'
+        value: ${{ jobs.list-files.outputs.pr_files }}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  PR_FILES_JSON: pr-files.json
+
+jobs:
+  list-files:
+    name: List Changed Files
+    runs-on: ubuntu-slim
+    outputs:
+      pr_files: ${{ steps.list-files.outputs.pr_files }}
+    steps:
+      - name: Determine PR Number
+        id: pr-number
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            let prNumber;
+            
+            // Priority: workflow_dispatch input > workflow_call input > pull_request event
+            if (context.eventName === 'workflow_dispatch') {
+              prNumber = ${{ inputs.pr_number || 0 }};
+            } else if ('${{ inputs.pr_number }}' !== '') {
+              prNumber = ${{ inputs.pr_number || 0 }};
+            } else if (context.payload.pull_request) {
+              prNumber = context.payload.pull_request.number;
+            }
+            
+            if (!prNumber) {
+              core.setFailed('No PR number provided. Use workflow_dispatch with pr_number input or trigger on pull_request event.');
+              return;
+            }
+            
+            core.setOutput('pr_number', prNumber);
+            core.info(`PR Number: ${prNumber}`);
+
+      - name: List Changed Files
+        id: list-files
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const fs = require('fs');
+            const prNumber = ${{ steps.pr-number.outputs.pr_number }};
+            const filterPattern = '${{ inputs.filter || '.*' }}';
+            const filterRegex = new RegExp(filterPattern);
+            
+            // Determine repo owner and name
+            const repoInput = '${{ inputs.repo || '' }}';
+            let owner, repo;
+            if (repoInput && repoInput.includes('/')) {
+              [owner, repo] = repoInput.split('/');
+            } else {
+              owner = context.repo.owner;
+              repo = context.repo.repo;
+            }
+            
+            core.info(`Fetching PR #${prNumber} from ${owner}/${repo}`);
+            
+            // Fetch all files changed in the PR with pagination
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: owner,
+              repo: repo,
+              pull_number: prNumber,
+              per_page: 100,
+            });
+            
+            // Extract file info with status and apply filter
+            const allFiles = files.map(f => ({ path: f.filename, status: f.status }));
+            const filteredFiles = allFiles.filter(f => filterRegex.test(f.path));
+            
+            // Log summary
+            core.info(`Filter pattern: ${filterPattern}`);
+            core.info(`Total changed files: ${allFiles.length}`);
+            core.info(`Files after filter: ${filteredFiles.length}`);
+            core.info('');
+            core.info('Filtered files:');
+            for (const file of filteredFiles) {
+              core.info(`  ${file.status.padEnd(10)} ${file.path}`);
+            }
+            
+            // Set outputs - single combined JSON object
+            const prFiles = {
+              pr_number: prNumber,
+              repo: `${owner}/${repo}`,
+              filter: filterPattern,
+              files_count: filteredFiles.length,
+              files: filteredFiles
+            };
+            core.setOutput('pr_files', JSON.stringify(prFiles));
+            
+            // Save artifact as JSON
+            fs.writeFileSync(process.env.RUNNER_TEMP + '/' + process.env.PR_FILES_JSON, JSON.stringify(prFiles, null, 2));
+            
+            // Write to job summary
+            await core.summary
+              .addHeading(`PR #${prNumber} Changed Files`)
+              .addRaw(`**Filter:** \`${filterPattern}\`\n\n`)
+              .addRaw(`**Total changed:** ${allFiles.length} | **After filter:** ${filteredFiles.length}\n\n`)
+              .addTable([
+                [{data: 'Status', header: true}, {data: 'File', header: true}],
+                ...filteredFiles.map(f => [f.status, f.path])
+              ])
+              .write();
+
+      - name: Upload File List Artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pr-files-list
+          path: ${{ runner.temp }}/${{ env.PR_FILES_JSON }}
+          retention-days: 1
