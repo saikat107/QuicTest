@@ -35,7 +35,7 @@ inputs:
 ```
 You are generating tests for the {{component}} component defined in {{source}} and {{header}}. {{#if focal}} The tests should specifically target the {{focal}} function.{{/if}} Your task is to improve test coverage by iterating through these steps:
 
-FOR iteration = 1, 2, 3, 4 (max 4 iterations):
+FOR iteration = 1, 2, 3, 4, 5 (max 5 iterations):
 
   1. Augment the existing harness in {{harness}} with high-quality tests that improve coverage. If a focal function name is provided, you must invoke the **unit-test** skill with the appropriate inputs. Otherwise, you must invoke the **component-test** skill with the appropriate inputs. If a harness is not provides, figure out best possible test file to add tests to. If you chose to add new test file, make sure to update the makefiles too. 
 
