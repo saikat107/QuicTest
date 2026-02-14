@@ -5,6 +5,8 @@ description: This skill generates high-quality, production-scenario tests for pr
 
 You are generating tests for the **{{component}}** component defined in **{{source}}**{{#if header}} using **{{header}}** as an API/header hint{{/if}}. Your task is to augment the existing test harness at **{{harness}}** with high-quality, scenario-based tests that achieve **100% coverage** of **{{source}}** while remaining strictly interface-driven and contract-safe.
 
+**NOTE: Your generated tests DO NOT need to be strictly unit test. To test a component, you can invoke functions from other components and files and generate system/integration style tests. But, make sure to respect the public API contracts.**
+
 
 # Step 1 — Build/Load the Repository Contract Index (RCI)
 
