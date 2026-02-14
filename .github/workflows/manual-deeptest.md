@@ -108,7 +108,7 @@ You must never attempt to run `git push` as it is not supported in this environm
 
 2. {{#if env.FOCAL}}Target the specific function `${{ env.FOCAL }}` for test generation.{{else}}Generate tests for the entire component.{{/if}}
 
-3. {{#if env.HARNESS}}Add tests to the existing harness at `${{ env.HARNESS }}`.{{else}}Determine the appropriate test file to add tests to, or create a new one if needed (update CMakeLists.txt accordingly).{{/if}}
+3. {{#if env.HARNESS}}Add tests to the existing harness at `${{ env.HARNESS }}`.{{else}}Determine the appropriate test file to add tests to, or create a new one if needed (update CMakeLists.txt accordingly).{{/if}}. Name the generated tests as `DeepTest*`, so that they can be run as `-Filter *DeepTest*` with GTest.
 
 4. Iterate up to 4 times to improve coverage:
    - Generate high-quality tests using the **unit-test** skill (if focal function specified) or **component-test** skill. In the case of component-test, don't just write unit test, do your best to maximize coverage by generating integration tests as well.
