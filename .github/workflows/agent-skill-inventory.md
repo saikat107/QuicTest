@@ -5,6 +5,8 @@ on:
 permissions:
   contents: read
   discussions: read
+  issues: read
+  pull-requests: read
 tools:
   github:
     toolsets: [default]

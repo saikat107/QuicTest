@@ -38,9 +38,8 @@ on:
         default: "./artifacts/coverage/msquiccoverage.xml"
 permissions:
   contents: read
-roles: all
-sandbox: false
-strict: false
+  issues: read
+  pull-requests: read
 tools:
   bash: [":*"]
   edit:
@@ -122,7 +121,7 @@ You must never attempt to run `git push` as it is not supported in this environm
    c. Print the commit summary: run `git log --oneline -1` and `git diff-tree --no-commit-id --name-only -r HEAD` to log the commit hash and changed files.
    d. Call the `create_pull_request` safe output tool with:
       - Title: "Tests for ${{ env.COMPONENT }}"
-      - Body: Include the coverage percentage, number of tests added, and workflow run ${{ github.run_id }}
+      - Body: Include the initial coverage percentage, final/updated coverage percentage, coverage improvement delta, number of tests added, and workflow run ${{ github.run_id }}
    e. Print the result of the `create_pull_request` tool call to confirm the PR was requested.
 
 7. If no staged changes, use `noop` with message "No test changes generated for ${{ env.COMPONENT }}."
