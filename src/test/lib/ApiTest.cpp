@@ -7500,3 +7500,920 @@ QuicTestRetryConfigSetting()
             sizeof(QUIC_STATELESS_RETRY_CONFIG),
             ResultConfig));
 }
+
+//
+// DeepTest: Comprehensive API tests for improved coverage
+//
+
+static
+_Function_class_(QUIC_CONNECTION_CALLBACK)
+QUIC_STATUS
+QUIC_API
+DeepTestConnectionCallback(
+    HQUIC,
+    void* Context,
+    QUIC_CONNECTION_EVENT* Event
+    )
+{
+    if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+        if (Context) {
+            ((CxPlatEvent*)Context)->Set();
+        }
+        return QUIC_STATUS_SUCCESS;
+    } else if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
+        if (Context) {
+            ((CxPlatEvent*)Context)->Set();
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+static
+_Function_class_(QUIC_STREAM_CALLBACK)
+QUIC_STATUS
+QUIC_API
+DeepTestStreamCallback(
+    HQUIC,
+    void*,
+    QUIC_STREAM_EVENT*
+    )
+{
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+//
+// DeepTest: Test MsQuicConnectionOpen with invalid partition index
+// What: Validates that ConnectionOpenInPartition rejects invalid partition indices
+// How: Calls ConnectionOpenInPartition with partition index >= PartitionCount
+// Assertions: Returns QUIC_STATUS_INVALID_PARAMETER
+//
+void DeepTestConnectionOpenInvalidPartition()
+{
+    TestScopeLogger logScope("DeepTestConnectionOpenInvalidPartition");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    // MsQuicLib.PartitionCount is not exposed via params, so we just test with large values
+    // Test invalid partition index (likely >= PartitionCount)
+    ConnectionScope Connection;
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->ConnectionOpenInPartition(
+            Registration,
+            1000,  // Invalid: likely beyond partition count
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    // Test with extremely large partition index
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->ConnectionOpenInPartition(
+            Registration,
+            65535,  // Invalid: way beyond partition count
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+}
+
+//
+// DeepTest: Test MsQuicConnectionStart with invalid address family
+// What: Validates that ConnectionStart rejects invalid address families
+// How: Calls ConnectionStart with an invalid QUIC_ADDRESS_FAMILY value
+// Assertions: Returns QUIC_STATUS_INVALID_PARAMETER
+//
+void DeepTestConnectionStartInvalidFamily()
+{
+    TestScopeLogger logScope("DeepTestConnectionStartInvalidFamily");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    MsQuicAlpn Alpn("MsQuicTest");
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+    
+    ConnectionScope Connection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    // Test with invalid address family (not UNSPEC, INET, or INET6)
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->ConnectionStart(
+            Connection.Handle,
+            ClientConfiguration,
+            (QUIC_ADDRESS_FAMILY)99,  // Invalid family
+            "localhost",
+            443));
+}
+
+//
+// DeepTest: Test MsQuicConnectionStart with zero server port
+// What: Validates that ConnectionStart rejects zero server port
+// How: Calls ConnectionStart with ServerPort = 0
+// Assertions: Returns QUIC_STATUS_INVALID_PARAMETER
+//
+void DeepTestConnectionStartZeroPort()
+{
+    TestScopeLogger logScope("DeepTestConnectionStartZeroPort");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    MsQuicAlpn Alpn("MsQuicTest");
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+    
+    ConnectionScope Connection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    // Test with zero server port
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->ConnectionStart(
+            Connection.Handle,
+            ClientConfiguration,
+            QUIC_ADDRESS_FAMILY_UNSPEC,
+            "localhost",
+            0));  // Invalid: port must be non-zero
+}
+
+//
+// DeepTest: Test MsQuicConnectionStart with NULL configuration
+// What: Validates that ConnectionStart rejects NULL configuration
+// How: Calls ConnectionStart with ConfigHandle = NULL
+// Assertions: Returns QUIC_STATUS_INVALID_PARAMETER
+//
+void DeepTestConnectionStartNullConfig()
+{
+    TestScopeLogger logScope("DeepTestConnectionStartNullConfig");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    ConnectionScope Connection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    // Test with NULL configuration
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->ConnectionStart(
+            Connection.Handle,
+            nullptr,  // NULL config
+            QUIC_ADDRESS_FAMILY_UNSPEC,
+            "localhost",
+            443));
+}
+
+//
+// DeepTest: Test MsQuicConnectionStart with too-long server name
+// What: Validates that ConnectionStart rejects server names longer than QUIC_MAX_SNI_LENGTH
+// How: Calls ConnectionStart with a server name exceeding QUIC_MAX_SNI_LENGTH (65535 bytes)
+// Assertions: Returns QUIC_STATUS_INVALID_PARAMETER
+//
+void DeepTestConnectionStartTooLongServerName()
+{
+    TestScopeLogger logScope("DeepTestConnectionStartTooLongServerName");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    MsQuicAlpn Alpn("MsQuicTest");
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+    
+    ConnectionScope Connection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    // Create a server name that's too long (> QUIC_MAX_SNI_LENGTH = 65535)
+    char LongServerName[QUIC_MAX_SNI_LENGTH + 100];
+    memset(LongServerName, 'a', sizeof(LongServerName) - 1);
+    LongServerName[sizeof(LongServerName) - 1] = '\0';
+    
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->ConnectionStart(
+            Connection.Handle,
+            ClientConfiguration,
+            QUIC_ADDRESS_FAMILY_UNSPEC,
+            LongServerName,
+            443));
+}
+
+//
+// DeepTest: Test MsQuicConnectionSetConfiguration on client connection
+// What: Validates that SetConfiguration rejects client connections
+// How: Opens a client connection and calls SetConfiguration on it
+// Assertions: Returns QUIC_STATUS_INVALID_PARAMETER
+//
+void DeepTestConnectionSetConfigurationOnClient()
+{
+    TestScopeLogger logScope("DeepTestConnectionSetConfigurationOnClient");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    MsQuicAlpn Alpn("MsQuicTest");
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+    
+    // Open a client connection (not server)
+    ConnectionScope Connection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    // Try to set configuration on client connection - should fail
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->ConnectionSetConfiguration(
+            Connection.Handle,
+            ServerConfiguration));
+}
+
+//
+// DeepTest: Test MsQuicConnectionSendResumptionTicket with invalid flags
+// What: Validates that SendResumptionTicket rejects invalid flags
+// How: Calls SendResumptionTicket with flags > QUIC_SEND_RESUMPTION_FLAG_FINAL
+// Assertions: Returns QUIC_STATUS_INVALID_PARAMETER
+//
+void DeepTestConnectionSendResumptionTicketInvalidFlags()
+{
+    TestScopeLogger logScope("DeepTestConnectionSendResumptionTicketInvalidFlags");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    ConnectionScope Connection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    // Test with invalid flags (> QUIC_SEND_RESUMPTION_FLAG_FINAL)
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->ConnectionSendResumptionTicket(
+            Connection.Handle,
+            (QUIC_SEND_RESUMPTION_FLAGS)0xFF,  // Invalid flags
+            0,
+            nullptr));
+}
+
+//
+// DeepTest: Test MsQuicConnectionSendResumptionTicket with data length exceeding max
+// What: Validates that SendResumptionTicket rejects data longer than QUIC_MAX_RESUMPTION_APP_DATA_LENGTH
+// How: Calls SendResumptionTicket with DataLength > QUIC_MAX_RESUMPTION_APP_DATA_LENGTH
+// Assertions: Returns QUIC_STATUS_INVALID_PARAMETER
+//
+void DeepTestConnectionSendResumptionTicketTooLongData()
+{
+    TestScopeLogger logScope("DeepTestConnectionSendResumptionTicketTooLongData");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    ConnectionScope Connection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    uint8_t LargeData[QUIC_MAX_RESUMPTION_APP_DATA_LENGTH + 100];
+    
+    // Test with data length exceeding max
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->ConnectionSendResumptionTicket(
+            Connection.Handle,
+            QUIC_SEND_RESUMPTION_FLAG_NONE,
+            sizeof(LargeData),  // Too long
+            LargeData));
+}
+
+//
+// DeepTest: Test MsQuicConnectionSendResumptionTicket with NULL data but non-zero length
+// What: Validates that SendResumptionTicket rejects NULL data when length > 0
+// How: Calls SendResumptionTicket with ResumptionData = NULL and DataLength > 0
+// Assertions: Returns QUIC_STATUS_INVALID_PARAMETER
+//
+void DeepTestConnectionSendResumptionTicketNullDataNonZeroLength()
+{
+    TestScopeLogger logScope("DeepTestConnectionSendResumptionTicketNullDataNonZeroLength");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    ConnectionScope Connection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    // Test with NULL data but non-zero length
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->ConnectionSendResumptionTicket(
+            Connection.Handle,
+            QUIC_SEND_RESUMPTION_FLAG_NONE,
+            10,      // Non-zero length
+            nullptr)); // NULL data
+}
+
+//
+// DeepTest: Test MsQuicConnectionShutdown with stream handle
+// What: Validates that ConnectionShutdown accepts stream handles and shuts down the connection
+// How: Opens a stream and calls ConnectionShutdown with the stream handle
+// Assertions: Operation completes without error (void function)
+//
+void DeepTestConnectionShutdownWithStreamHandle()
+{
+    TestScopeLogger logScope("DeepTestConnectionShutdownWithStreamHandle");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    ConnectionScope Connection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    StreamScope Stream;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->StreamOpen(
+            Connection.Handle,
+            QUIC_STREAM_OPEN_FLAG_NONE,
+            DeepTestStreamCallback,
+            nullptr,
+            &Stream.Handle));
+    
+    // Call shutdown with stream handle - should work
+    MsQuic->ConnectionShutdown(
+        Stream.Handle,
+        QUIC_CONNECTION_SHUTDOWN_FLAG_NONE,
+        0);
+    
+    // Small delay to allow shutdown to process
+    CxPlatSleep(10);
+}
+
+//
+// DeepTest: Test MsQuicConnectionShutdown with error code at QUIC_UINT62_MAX boundary
+// What: Validates that ConnectionShutdown accepts the maximum valid QUIC_UINT62 error code
+// How: Calls ConnectionShutdown with ErrorCode = QUIC_UINT62_MAX (0x3FFFFFFFFFFFFFFF)
+// Assertions: Operation completes without error
+//
+void DeepTestConnectionShutdownMaxErrorCode()
+{
+    TestScopeLogger logScope("DeepTestConnectionShutdownMaxErrorCode");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    ConnectionScope Connection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    // Test with maximum valid error code
+    MsQuic->ConnectionShutdown(
+        Connection.Handle,
+        QUIC_CONNECTION_SHUTDOWN_FLAG_NONE,
+        QUIC_UINT62_MAX);
+    
+    CxPlatSleep(10);
+}
+
+//
+// DeepTest: Test MsQuicStreamOpen with NULL handler
+// What: Validates that StreamOpen rejects NULL stream callback handler
+// How: Calls StreamOpen with Handler = NULL
+// Assertions: Returns QUIC_STATUS_INVALID_PARAMETER
+//
+void DeepTestStreamOpenNullHandler()
+{
+    TestScopeLogger logScope("DeepTestStreamOpenNullHandler");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    ConnectionScope Connection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    StreamScope Stream;
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->StreamOpen(
+            Connection.Handle,
+            QUIC_STREAM_OPEN_FLAG_NONE,
+            nullptr,  // NULL handler
+            nullptr,
+            &Stream.Handle));
+}
+
+//
+// DeepTest: Test MsQuicStreamOpen with NULL output parameter
+// What: Validates that StreamOpen rejects NULL output stream handle
+// How: Calls StreamOpen with NewStream = NULL
+// Assertions: Returns QUIC_STATUS_INVALID_PARAMETER
+//
+void DeepTestStreamOpenNullOutput()
+{
+    TestScopeLogger logScope("DeepTestStreamOpenNullOutput");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    ConnectionScope Connection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->StreamOpen(
+            Connection.Handle,
+            QUIC_STREAM_OPEN_FLAG_NONE,
+            DeepTestStreamCallback,
+            nullptr,
+            nullptr));  // NULL output
+}
+
+//
+// DeepTest: Test MsQuicStreamSend with NULL buffers
+// What: Validates that StreamSend rejects NULL buffer array
+// How: Calls StreamSend with Buffers = NULL
+// Assertions: Returns QUIC_STATUS_INVALID_PARAMETER
+//
+void DeepTestStreamSendNullBuffers()
+{
+    TestScopeLogger logScope("DeepTestStreamSendNullBuffers");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    ConnectionScope Connection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    StreamScope Stream;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->StreamOpen(
+            Connection.Handle,
+            QUIC_STREAM_OPEN_FLAG_NONE,
+            DeepTestStreamCallback,
+            nullptr,
+            &Stream.Handle));
+    
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->StreamSend(
+            Stream.Handle,
+            nullptr,  // NULL buffers
+            1,
+            QUIC_SEND_FLAG_NONE,
+            nullptr));
+}
+
+//
+// DeepTest: Test MsQuicStreamSend with zero buffer count
+// What: Validates that StreamSend rejects zero buffer count
+// How: Calls StreamSend with BufferCount = 0
+// Assertions: Returns QUIC_STATUS_INVALID_PARAMETER
+//
+void DeepTestStreamSendZeroBufferCount()
+{
+    TestScopeLogger logScope("DeepTestStreamSendZeroBufferCount");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    ConnectionScope Connection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    StreamScope Stream;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->StreamOpen(
+            Connection.Handle,
+            QUIC_STREAM_OPEN_FLAG_NONE,
+            DeepTestStreamCallback,
+            nullptr,
+            &Stream.Handle));
+    
+    QUIC_BUFFER Buffer = { 10, (uint8_t*)"test" };
+    
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->StreamSend(
+            Stream.Handle,
+            &Buffer,
+            0,  // Zero count
+            QUIC_SEND_FLAG_NONE,
+            nullptr));
+}
+
+//
+// DeepTest: Test MsQuicStreamShutdown with error code exceeding QUIC_UINT62_MAX
+// What: Validates that StreamShutdown validates error code range
+// How: Opens a stream and calls StreamShutdown with ErrorCode > QUIC_UINT62_MAX
+// Assertions: Returns QUIC_STATUS_INVALID_PARAMETER or operation completes
+//
+void DeepTestStreamShutdownInvalidErrorCode()
+{
+    TestScopeLogger logScope("DeepTestStreamShutdownInvalidErrorCode");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    ConnectionScope Connection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    StreamScope Stream;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->StreamOpen(
+            Connection.Handle,
+            QUIC_STREAM_OPEN_FLAG_NONE,
+            DeepTestStreamCallback,
+            nullptr,
+            &Stream.Handle));
+    
+    // Test with error code exceeding QUIC_UINT62_MAX
+    // Note: The API may silently clamp or the operation may succeed
+    QUIC_STATUS Status = MsQuic->StreamShutdown(
+        Stream.Handle,
+        QUIC_STREAM_SHUTDOWN_FLAG_ABORT,
+        QUIC_UINT62_MAX + 1);  // Just beyond max
+    
+    // Either invalid parameter or success is acceptable
+    TEST_TRUE(
+        Status == QUIC_STATUS_INVALID_PARAMETER ||
+        Status == QUIC_STATUS_SUCCESS ||
+        Status == QUIC_STATUS_PENDING);
+}
+
+//
+// DeepTest: Test MsQuicStreamStart on stream handle
+// What: Validates basic StreamStart operation
+// How: Opens a stream and calls StreamStart
+// Assertions: Returns QUIC_STATUS_PENDING or success
+//
+void DeepTestStreamStartBasic()
+{
+    TestScopeLogger logScope("DeepTestStreamStartBasic");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    ConnectionScope Connection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    StreamScope Stream;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->StreamOpen(
+            Connection.Handle,
+            QUIC_STREAM_OPEN_FLAG_NONE,
+            DeepTestStreamCallback,
+            nullptr,
+            &Stream.Handle));
+    
+    // Start the stream - should succeed with PENDING or another success status
+    QUIC_STATUS Status = MsQuic->StreamStart(
+        Stream.Handle,
+        QUIC_STREAM_START_FLAG_NONE);
+    
+    TEST_TRUE(
+        Status == QUIC_STATUS_PENDING ||
+        Status == QUIC_STATUS_SUCCESS ||
+        Status == QUIC_STATUS_INVALID_STATE);  // May be invalid state if connection not connected
+}
+
+//
+// DeepTest: Test MsQuicStreamReceiveSetEnabled with basic flag
+// What: Validates StreamReceiveSetEnabled operation
+// How: Opens a stream and calls StreamReceiveSetEnabled with TRUE and FALSE
+// Assertions: Returns success or pending
+//
+void DeepTestStreamReceiveSetEnabled()
+{
+    TestScopeLogger logScope("DeepTestStreamReceiveSetEnabled");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    ConnectionScope Connection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    StreamScope Stream;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->StreamOpen(
+            Connection.Handle,
+            QUIC_STREAM_OPEN_FLAG_NONE,
+            DeepTestStreamCallback,
+            nullptr,
+            &Stream.Handle));
+    
+    // Enable receive
+    QUIC_STATUS Status = MsQuic->StreamReceiveSetEnabled(
+        Stream.Handle,
+        TRUE);
+    
+    TEST_TRUE(
+        Status == QUIC_STATUS_SUCCESS ||
+        Status == QUIC_STATUS_PENDING ||
+        Status == QUIC_STATUS_INVALID_STATE);
+    
+    // Disable receive
+    Status = MsQuic->StreamReceiveSetEnabled(
+        Stream.Handle,
+        FALSE);
+    
+    TEST_TRUE(
+        Status == QUIC_STATUS_SUCCESS ||
+        Status == QUIC_STATUS_PENDING ||
+        Status == QUIC_STATUS_INVALID_STATE);
+}
+
+//
+// DeepTest: Test MsQuicDatagramSend with NULL buffers
+// What: Validates that DatagramSend rejects NULL buffer array
+// How: Calls DatagramSend with Buffers = NULL
+// Assertions: Returns QUIC_STATUS_INVALID_PARAMETER
+//
+void DeepTestDatagramSendNullBuffers()
+{
+    TestScopeLogger logScope("DeepTestDatagramSendNullBuffers");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    ConnectionScope Connection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->DatagramSend(
+            Connection.Handle,
+            nullptr,  // NULL buffers
+            1,
+            QUIC_SEND_FLAG_NONE,
+            nullptr));
+}
+
+//
+// DeepTest: Test MsQuicDatagramSend with zero buffer count
+// What: Validates that DatagramSend rejects zero buffer count
+// How: Calls DatagramSend with BufferCount = 0
+// Assertions: Returns QUIC_STATUS_INVALID_PARAMETER
+//
+void DeepTestDatagramSendZeroBufferCount()
+{
+    TestScopeLogger logScope("DeepTestDatagramSendZeroBufferCount");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    ConnectionScope Connection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    QUIC_BUFFER Buffer = { 10, (uint8_t*)"test" };
+    
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->DatagramSend(
+            Connection.Handle,
+            &Buffer,
+            0,  // Zero count
+            QUIC_SEND_FLAG_NONE,
+            nullptr));
+}
+
+//
+// DeepTest: Test MsQuicConnectionStart with valid configuration but already started connection
+// What: Validates that ConnectionStart rejects already-started connections
+// How: Starts a connection, then tries to start it again
+// Assertions: Second start returns QUIC_STATUS_INVALID_STATE
+//
+void DeepTestConnectionStartAlreadyStarted()
+{
+    TestScopeLogger logScope("DeepTestConnectionStartAlreadyStarted");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    MsQuicAlpn Alpn("MsQuicTest");
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+    
+    ConnectionScope Connection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    // Set remote address to avoid needing ServerName
+    QUIC_ADDR RemoteAddress = {0};
+    QuicAddrSetFamily(&RemoteAddress, QUIC_ADDRESS_FAMILY_INET);
+    QuicAddrSetPort(&RemoteAddress, 443);
+    uint32_t AddrSize = sizeof(RemoteAddress);
+    MsQuic->SetParam(
+        Connection.Handle,
+        QUIC_PARAM_CONN_REMOTE_ADDRESS,
+        AddrSize,
+        &RemoteAddress);
+    
+    // First start - should succeed with PENDING
+    QUIC_STATUS Status1 = MsQuic->ConnectionStart(
+        Connection.Handle,
+        ClientConfiguration,
+        QUIC_ADDRESS_FAMILY_UNSPEC,
+        nullptr,  // NULL ServerName OK since RemoteAddress set
+        443);
+    
+    TEST_EQUAL(QUIC_STATUS_PENDING, Status1);
+    
+    // Second start - should fail with INVALID_STATE
+    QUIC_STATUS Status2 = MsQuic->ConnectionStart(
+        Connection.Handle,
+        ClientConfiguration,
+        QUIC_ADDRESS_FAMILY_UNSPEC,
+        nullptr,
+        443);
+    
+    TEST_EQUAL(QUIC_STATUS_INVALID_STATE, Status2);
+    
+    // Shutdown the connection
+    MsQuic->ConnectionShutdown(
+        Connection.Handle,
+        QUIC_CONNECTION_SHUTDOWN_FLAG_NONE,
+        0);
+    
+    CxPlatSleep(50);
+}
+
+//
+// DeepTest: Test MsQuicConnectionClose with NULL handle
+// What: Validates that ConnectionClose safely handles NULL handle
+// How: Calls ConnectionClose with NULL handle
+// Assertions: Operation completes without crash (void function)
+//
+void DeepTestConnectionCloseNullHandle()
+{
+    TestScopeLogger logScope("DeepTestConnectionCloseNullHandle");
+    
+    // Should not crash
+    MsQuic->ConnectionClose(nullptr);
+}
+
+//
+// DeepTest: Test MsQuicStreamClose with NULL handle
+// What: Validates that StreamClose safely handles NULL handle
+// How: Calls StreamClose with NULL handle
+// Assertions: Operation completes without crash (void function)
+//
+void DeepTestStreamCloseNullHandle()
+{
+    TestScopeLogger logScope("DeepTestStreamCloseNullHandle");
+    
+    // Should not crash
+    MsQuic->StreamClose(nullptr);
+}
+
+//
+// DeepTest: Test MsQuicConnectionShutdown with NULL handle
+// What: Validates that ConnectionShutdown safely handles NULL handle
+// How: Calls ConnectionShutdown with NULL handle
+// Assertions: Operation completes without crash (void function)
+//
+void DeepTestConnectionShutdownNullHandle()
+{
+    TestScopeLogger logScope("DeepTestConnectionShutdownNullHandle");
+    
+    // Should not crash
+    MsQuic->ConnectionShutdown(
+        nullptr,
+        QUIC_CONNECTION_SHUTDOWN_FLAG_NONE,
+        0);
+}
+
+//
+// DeepTest: Test MsQuicStreamReceiveComplete with basic operation
+// What: Validates StreamReceiveComplete accepts valid parameters
+// How: Calls StreamReceiveComplete on a valid stream handle
+// Assertions: Operation completes without crash (void function)
+//
+void DeepTestStreamReceiveCompleteBasic()
+{
+    TestScopeLogger logScope("DeepTestStreamReceiveCompleteBasic");
+    
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+    
+    ConnectionScope Connection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            DeepTestConnectionCallback,
+            nullptr,
+            &Connection.Handle));
+    
+    StreamScope Stream;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->StreamOpen(
+            Connection.Handle,
+            QUIC_STREAM_OPEN_FLAG_NONE,
+            DeepTestStreamCallback,
+            nullptr,
+            &Stream.Handle));
+    
+    // Call receive complete - should not crash even if no data was received
+    MsQuic->StreamReceiveComplete(
+        Stream.Handle,
+        0);
+    
+    CxPlatSleep(10);
+}

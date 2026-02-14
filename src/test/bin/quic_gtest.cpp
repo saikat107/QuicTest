@@ -18,6 +18,35 @@
 #pragma message("Test compiled with preview features enabled")
 #endif
 
+//
+// Forward declarations for DeepTest functions
+//
+void DeepTestConnectionOpenInvalidPartition();
+void DeepTestConnectionStartInvalidFamily();
+void DeepTestConnectionStartZeroPort();
+void DeepTestConnectionStartNullConfig();
+void DeepTestConnectionStartTooLongServerName();
+void DeepTestConnectionSetConfigurationOnClient();
+void DeepTestConnectionSendResumptionTicketInvalidFlags();
+void DeepTestConnectionSendResumptionTicketTooLongData();
+void DeepTestConnectionSendResumptionTicketNullDataNonZeroLength();
+void DeepTestConnectionShutdownWithStreamHandle();
+void DeepTestConnectionShutdownMaxErrorCode();
+void DeepTestStreamOpenNullHandler();
+void DeepTestStreamOpenNullOutput();
+void DeepTestStreamSendNullBuffers();
+void DeepTestStreamSendZeroBufferCount();
+void DeepTestStreamShutdownInvalidErrorCode();
+void DeepTestStreamStartBasic();
+void DeepTestStreamReceiveSetEnabled();
+void DeepTestDatagramSendNullBuffers();
+void DeepTestDatagramSendZeroBufferCount();
+void DeepTestConnectionStartAlreadyStarted();
+void DeepTestConnectionCloseNullHandle();
+void DeepTestStreamCloseNullHandle();
+void DeepTestConnectionShutdownNullHandle();
+void DeepTestStreamReceiveCompleteBasic();
+
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 bool UseDuoNic = false;
@@ -394,6 +423,134 @@ TEST(ParameterValidation, ValidatePartition) {
     }
 }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
+//
+// DeepTest: Comprehensive API coverage tests
+//
+TEST(DeepTest, ConnectionOpenInvalidPartition) {
+    TestLogger Logger("DeepTestConnectionOpenInvalidPartition");
+    DeepTestConnectionOpenInvalidPartition();
+}
+
+TEST(DeepTest, ConnectionStartInvalidFamily) {
+    TestLogger Logger("DeepTestConnectionStartInvalidFamily");
+    DeepTestConnectionStartInvalidFamily();
+}
+
+TEST(DeepTest, ConnectionStartZeroPort) {
+    TestLogger Logger("DeepTestConnectionStartZeroPort");
+    DeepTestConnectionStartZeroPort();
+}
+
+TEST(DeepTest, ConnectionStartNullConfig) {
+    TestLogger Logger("DeepTestConnectionStartNullConfig");
+    DeepTestConnectionStartNullConfig();
+}
+
+TEST(DeepTest, ConnectionStartTooLongServerName) {
+    TestLogger Logger("DeepTestConnectionStartTooLongServerName");
+    DeepTestConnectionStartTooLongServerName();
+}
+
+TEST(DeepTest, ConnectionSetConfigurationOnClient) {
+    TestLogger Logger("DeepTestConnectionSetConfigurationOnClient");
+    DeepTestConnectionSetConfigurationOnClient();
+}
+
+TEST(DeepTest, ConnectionSendResumptionTicketInvalidFlags) {
+    TestLogger Logger("DeepTestConnectionSendResumptionTicketInvalidFlags");
+    DeepTestConnectionSendResumptionTicketInvalidFlags();
+}
+
+TEST(DeepTest, ConnectionSendResumptionTicketTooLongData) {
+    TestLogger Logger("DeepTestConnectionSendResumptionTicketTooLongData");
+    DeepTestConnectionSendResumptionTicketTooLongData();
+}
+
+TEST(DeepTest, ConnectionSendResumptionTicketNullDataNonZeroLength) {
+    TestLogger Logger("DeepTestConnectionSendResumptionTicketNullDataNonZeroLength");
+    DeepTestConnectionSendResumptionTicketNullDataNonZeroLength();
+}
+
+TEST(DeepTest, ConnectionShutdownWithStreamHandle) {
+    TestLogger Logger("DeepTestConnectionShutdownWithStreamHandle");
+    DeepTestConnectionShutdownWithStreamHandle();
+}
+
+TEST(DeepTest, ConnectionShutdownMaxErrorCode) {
+    TestLogger Logger("DeepTestConnectionShutdownMaxErrorCode");
+    DeepTestConnectionShutdownMaxErrorCode();
+}
+
+TEST(DeepTest, StreamOpenNullHandler) {
+    TestLogger Logger("DeepTestStreamOpenNullHandler");
+    DeepTestStreamOpenNullHandler();
+}
+
+TEST(DeepTest, StreamOpenNullOutput) {
+    TestLogger Logger("DeepTestStreamOpenNullOutput");
+    DeepTestStreamOpenNullOutput();
+}
+
+TEST(DeepTest, StreamSendNullBuffers) {
+    TestLogger Logger("DeepTestStreamSendNullBuffers");
+    DeepTestStreamSendNullBuffers();
+}
+
+TEST(DeepTest, StreamSendZeroBufferCount) {
+    TestLogger Logger("DeepTestStreamSendZeroBufferCount");
+    DeepTestStreamSendZeroBufferCount();
+}
+
+TEST(DeepTest, StreamShutdownInvalidErrorCode) {
+    TestLogger Logger("DeepTestStreamShutdownInvalidErrorCode");
+    DeepTestStreamShutdownInvalidErrorCode();
+}
+
+TEST(DeepTest, StreamStartBasic) {
+    TestLogger Logger("DeepTestStreamStartBasic");
+    DeepTestStreamStartBasic();
+}
+
+TEST(DeepTest, StreamReceiveSetEnabled) {
+    TestLogger Logger("DeepTestStreamReceiveSetEnabled");
+    DeepTestStreamReceiveSetEnabled();
+}
+
+TEST(DeepTest, DatagramSendNullBuffers) {
+    TestLogger Logger("DeepTestDatagramSendNullBuffers");
+    DeepTestDatagramSendNullBuffers();
+}
+
+TEST(DeepTest, DatagramSendZeroBufferCount) {
+    TestLogger Logger("DeepTestDatagramSendZeroBufferCount");
+    DeepTestDatagramSendZeroBufferCount();
+}
+
+TEST(DeepTest, ConnectionStartAlreadyStarted) {
+    TestLogger Logger("DeepTestConnectionStartAlreadyStarted");
+    DeepTestConnectionStartAlreadyStarted();
+}
+
+TEST(DeepTest, ConnectionCloseNullHandle) {
+    TestLogger Logger("DeepTestConnectionCloseNullHandle");
+    DeepTestConnectionCloseNullHandle();
+}
+
+TEST(DeepTest, StreamCloseNullHandle) {
+    TestLogger Logger("DeepTestStreamCloseNullHandle");
+    DeepTestStreamCloseNullHandle();
+}
+
+TEST(DeepTest, ConnectionShutdownNullHandle) {
+    TestLogger Logger("DeepTestConnectionShutdownNullHandle");
+    DeepTestConnectionShutdownNullHandle();
+}
+
+TEST(DeepTest, StreamReceiveCompleteBasic) {
+    TestLogger Logger("DeepTestStreamReceiveCompleteBasic");
+    DeepTestStreamReceiveCompleteBasic();
+}
 
 TEST(OwnershipValidation, RegistrationShutdownBeforeConnOpen) {
     TestLogger Logger("RegistrationShutdownBeforeConnOpen");
