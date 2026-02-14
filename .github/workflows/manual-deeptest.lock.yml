@@ -21,7 +21,7 @@
 #
 # Manually trigger DeepTest agent to generate tests for a specified component
 #
-# frontmatter-hash: d44a5cb9784558dffca9cceb745aed4850d197af60c3fc0574788814f807c964
+# frontmatter-hash: dea9d7eba8940bc8f8ef39dc8c0fa82f0e03c483264514b0d77d6f8fcb378295
 
 name: "DeepTest Manual Workflow"
 "on":
@@ -64,7 +64,7 @@ name: "DeepTest Manual Workflow"
 permissions: {}
 
 concurrency:
-  group: "gh-aw-${{ github.workflow }}"
+  group: gh-aw-${{ inputs.component }}
 
 run-name: "DeepTest Manual Workflow"
 

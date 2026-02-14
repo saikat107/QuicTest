@@ -40,6 +40,8 @@ permissions:
   contents: read
   issues: read
   pull-requests: read
+concurrency:
+  group: "gh-aw-${{ inputs.component }}"
 tools:
   bash: [":*"]
   edit:
@@ -109,7 +111,7 @@ You must never attempt to run `git push` as it is not supported in this environm
 3. {{#if env.HARNESS}}Add tests to the existing harness at `${{ env.HARNESS }}`.{{else}}Determine the appropriate test file to add tests to, or create a new one if needed (update CMakeLists.txt accordingly).{{/if}}
 
 4. Iterate up to 4 times to improve coverage:
-   - Generate high-quality tests using the **unit-test** skill (if focal function specified) or **component-test** skill
+   - Generate high-quality tests using the **unit-test** skill (if focal function specified) or **component-test** skill. In the case of component-test, don't just write unit test, do your best to maximize coverage by generating integration tests as well.
    - Compute coverage using `scripts/make-coverage.sh`
    - Stop early only if 100% coverage is achieved
 
