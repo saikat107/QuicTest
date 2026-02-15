@@ -25,6 +25,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           path: post-pr
+          submodules: recursive
 
       - name: Checkout base version (pre-PR)
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -32,6 +33,7 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha }}
           fetch-depth: 0
           path: pre-pr
+          submodules: recursive
 
       - name: List files changed in PR
         id: changed-files
