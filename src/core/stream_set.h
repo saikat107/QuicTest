@@ -5,6 +5,10 @@
 
 --*/
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 //
 // Info for a particular type of stream (client/server;bidir/unidir)
 //
@@ -216,3 +220,7 @@ QuicStreamSetGetMaxStreamIDs(
     _Out_writes_all_(NUMBER_OF_STREAM_TYPES)
         uint64_t* MaxStreamIds
     );
+
+#if defined(__cplusplus)
+}
+#endif

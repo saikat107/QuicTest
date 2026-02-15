@@ -12,6 +12,7 @@ set(SOURCES
     SettingsTest.cpp
     SlidingWindowExtremumTest.cpp
     SpinFrame.cpp
+    StreamSetTest.cpp
     TicketTest.cpp
     TransportParamTest.cpp
     VarIntTest.cpp
@@ -28,6 +29,9 @@ set_property(TARGET msquiccoretest APPEND PROPERTY BUILD_RPATH "$ORIGIN")
 target_link_libraries(msquiccoretest msquic)
 
 if (BUILD_SHARED_LIBS)
+    target_link_libraries(msquiccoretest core msquic_platform)
+else()
+    # Stream set tests need core library
     target_link_libraries(msquiccoretest core msquic_platform)
 endif()
 
