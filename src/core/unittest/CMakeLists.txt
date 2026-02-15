@@ -5,6 +5,7 @@ set(SOURCES
     main.cpp
     CubicTest.cpp
     FrameTest.cpp
+    LossDetectionTest.cpp
     PacketNumberTest.cpp
     PartitionTest.cpp
     RangeTest.cpp
