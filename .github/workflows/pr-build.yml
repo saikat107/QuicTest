@@ -67,7 +67,7 @@ jobs:
       # ========================================
       # Build and Test Pre-PR (Baseline)
       # ========================================
-      - name: Prepare Machine (Pre-PR)
+      - name: Prepare Machine
         shell: pwsh
         working-directory: pre-pr
         run: scripts\prepare-machine.ps1 -ForBuild -Tls schannel -InstallCodeCoverage
@@ -127,11 +127,6 @@ jobs:
       # ========================================
       # Build and Test Post-PR (Current)
       # ========================================
-      - name: Prepare Machine (Post-PR)
-        shell: pwsh
-        working-directory: post-pr
-        run: scripts\prepare-machine.ps1 -ForBuild -Tls schannel -InstallCodeCoverage
-
       - name: Build Post-PR
         id: build-post
         shell: pwsh
