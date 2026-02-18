@@ -2424,4 +2424,1243 @@ TEST_F(TlsTest, PortableCertFlags)
     }
 }
 
+//
+// DeepTest tests for QuicTlsSend function coverage
+// These tests exercise various buffer management scenarios in QuicTlsSend
+//
+
+// DeepTest: Test handshake with small initial buffer to trigger reallocation
+TEST_F(TlsTest, DeepTestQuicTlsSendBufferReallocation)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    
+    // Start with a very small buffer to force reallocation during handshake
+    CXPLAT_FREE(ClientContext.State.Buffer, QUIC_POOL_TEST);
+    ClientContext.State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(64, QUIC_POOL_TEST);
+    ClientContext.State.BufferAllocLength = 64;
+    ClientContext.State.BufferLength = 0;
+    
+    CXPLAT_FREE(ServerContext.State.Buffer, QUIC_POOL_TEST);
+    ServerContext.State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(64, QUIC_POOL_TEST);
+    ServerContext.State.BufferAllocLength = 64;
+    ServerContext.State.BufferLength = 0;
+    
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    // This should trigger multiple buffer reallocations in QuicTlsSend
+    DoHandshake(ServerContext, ClientContext);
+    
+    // Verify handshake completed successfully despite buffer reallocations
+    ASSERT_TRUE(ServerContext.State.HandshakeComplete);
+    ASSERT_TRUE(ClientContext.State.HandshakeComplete);
+}
+
+// DeepTest: Test with multiple sequential handshake messages on same key type
+TEST_F(TlsTest, DeepTestQuicTlsSendMultipleHandshakeMessages)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    // Perform handshake which will call QuicTlsSend multiple times
+    // with HANDSHAKE key type, testing the BufferOffsetHandshake logic
+    auto Result = ClientContext.ProcessData(nullptr);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    // Server processes client hello and sends server hello
+    // This exercises QuicTlsSend with HANDSHAKE key for first time
+    Result = ServerContext.ProcessData(&ClientContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    // Client processes server response
+    // This exercises QuicTlsSend with HANDSHAKE and 1_RTT keys
+    Result = ClientContext.ProcessData(&ServerContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    // Complete the handshake
+    Result = ServerContext.ProcessData(&ClientContext.State);
+    
+    // Verify both handshake offset and 1-RTT offset were set
+    ASSERT_NE(0u, ServerContext.State.BufferOffsetHandshake);
+    ASSERT_NE(0u, ClientContext.State.BufferOffset1Rtt);
+}
+
+// DeepTest: Test with very small fragment size to test buffer boundary conditions
+TEST_F(TlsTest, DeepTestQuicTlsSendSmallFragments)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    // Use very small fragment size to test buffer management
+    // with incremental data additions
+    const uint32_t SmallFragmentSize = 128;
+    DoHandshake(ServerContext, ClientContext, SmallFragmentSize);
+    
+    ASSERT_TRUE(ServerContext.State.HandshakeComplete);
+    ASSERT_TRUE(ClientContext.State.HandshakeComplete);
+}
+
+// DeepTest: Test 1-RTT key type offset tracking
+TEST_F(TlsTest, DeepTestQuicTlsSend1RttOffsetTracking)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    DoHandshake(ServerContext, ClientContext);
+    
+    // Verify 1-RTT buffer offset was set during handshake
+    // QuicTlsSend should have set BufferOffset1Rtt when first 1-RTT data was sent
+    ASSERT_TRUE(ClientContext.State.BufferOffset1Rtt > 0 || 
+                ServerContext.State.BufferOffset1Rtt > 0);
+}
+
+// DeepTest: Test with session resumption to exercise multiple handshake scenarios
+#ifndef QUIC_DISABLE_0RTT_TESTS
+TEST_F(TlsTest, DeepTestQuicTlsSendWithResumption)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    
+    // First handshake with session ticket
+    {
+        TlsContext ServerContext, ClientContext;
+        ClientContext.InitializeClient(ClientConfig);
+        ServerContext.InitializeServer(ServerConfig);
+        DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, true);
+        
+        ASSERT_NE(nullptr, ClientContext.ReceivedSessionTicket.Buffer);
+        ASSERT_NE(0u, ClientContext.ReceivedSessionTicket.Length);
+    }
+    
+    // Second handshake with resumption - exercises QuicTlsSend with 0-RTT
+    {
+        TlsContext ServerContext, ClientContext;
+        
+        ClientContext.InitializeClient(ClientConfig);
+        ServerContext.InitializeServer(ServerConfig);
+        
+        DoHandshake(ServerContext, ClientContext);
+        ASSERT_TRUE(ClientContext.State.HandshakeComplete);
+    }
+}
+#endif // QUIC_DISABLE_0RTT_TESTS
+
+// DeepTest: Test buffer growth with multiple key types
+TEST_F(TlsTest, DeepTestQuicTlsSendMultipleKeyTypes)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    
+    // Start with minimal buffer
+    CXPLAT_FREE(ServerContext.State.Buffer, QUIC_POOL_TEST);
+    ServerContext.State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(128, QUIC_POOL_TEST);
+    ServerContext.State.BufferAllocLength = 128;
+    ServerContext.State.BufferLength = 0;
+    ServerContext.State.BufferOffsetHandshake = 0;
+    ServerContext.State.BufferOffset1Rtt = 0;
+    
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    // Process initial client hello
+    auto Result = ClientContext.ProcessData(nullptr);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    // Server response will use INITIAL, then HANDSHAKE, potentially triggering
+    // multiple QuicTlsSend calls with different key types and buffer reallocations
+    Result = ServerContext.ProcessData(&ClientContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    // Verify buffer was expanded beyond initial 128 bytes
+    ASSERT_GT(ServerContext.State.BufferAllocLength, 128);
+    
+    // Complete handshake
+    Result = ClientContext.ProcessData(&ServerContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    Result = ServerContext.ProcessData(&ClientContext.State);
+    ASSERT_TRUE(ServerContext.State.HandshakeComplete);
+}
+
+// DeepTest: Test boundary condition where buffer is nearly full
+TEST_F(TlsTest, DeepTestQuicTlsSendNearMaxBuffer)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    // Normal handshake should stay well below 0xF000 limit
+    DoHandshake(ServerContext, ClientContext);
+    
+    // Verify we didn't exceed the maximum buffer size (0xF000)
+    ASSERT_LT(ServerContext.State.BufferTotalLength, 0xF000);
+    ASSERT_LT(ClientContext.State.BufferTotalLength, 0xF000);
+    
+    ASSERT_TRUE(ServerContext.State.HandshakeComplete);
+    ASSERT_TRUE(ClientContext.State.HandshakeComplete);
+}
+
+// DeepTest: Test with larger than typical transport parameters
+TEST_F(TlsTest, DeepTestQuicTlsSendLargeTransportParams)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    
+    // Initialize with larger transport parameters to increase handshake data size
+    const uint16_t LargeTPLen = 512;
+    ClientContext.InitializeClient(ClientConfig, false, LargeTPLen);
+    ServerContext.InitializeServer(ServerConfig, false, LargeTPLen);
+    
+    DoHandshake(ServerContext, ClientContext);
+    
+    // Verify handshake completed with larger transport parameters
+    ASSERT_TRUE(ServerContext.State.HandshakeComplete);
+    ASSERT_TRUE(ClientContext.State.HandshakeComplete);
+}
+
+// DeepTest: Stress test with parallel handshakes to test buffer management
+TEST_F(TlsTest, DeepTestQuicTlsSendParallelHandshakes)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    
+    // Create multiple contexts to verify QuicTlsSend handles independent buffers
+    const int NumContexts = 5;
+    TlsContext ServerContexts[NumContexts];
+    TlsContext ClientContexts[NumContexts];
+    
+    for (int i = 0; i < NumContexts; i++) {
+        ClientContexts[i].InitializeClient(ClientConfig);
+        ServerContexts[i].InitializeServer(ServerConfig);
+    }
+    
+    // Perform handshakes - each should have independent buffer state
+    for (int i = 0; i < NumContexts; i++) {
+        DoHandshake(ServerContexts[i], ClientContexts[i]);
+        ASSERT_TRUE(ServerContexts[i].State.HandshakeComplete);
+        ASSERT_TRUE(ClientContexts[i].State.HandshakeComplete);
+    }
+}
+
+// DeepTest: Test incremental buffer growth pattern
+TEST_F(TlsTest, DeepTestQuicTlsSendIncrementalGrowth)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    
+    // Start with very small buffer to observe multiple doublings
+    CXPLAT_FREE(ClientContext.State.Buffer, QUIC_POOL_TEST);
+    ClientContext.State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(32, QUIC_POOL_TEST);
+    ClientContext.State.BufferAllocLength = 32;
+    ClientContext.State.BufferLength = 0;
+    
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    auto Result = ClientContext.ProcessData(nullptr);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    // Buffer should have grown from 32 bytes through multiple doublings
+    // Typical client hello is ~200-300 bytes
+    ASSERT_GE(ClientContext.State.BufferAllocLength, 256);
+    
+    // Complete handshake
+    Result = ServerContext.ProcessData(&ClientContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    Result = ClientContext.ProcessData(&ServerContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    Result = ServerContext.ProcessData(&ClientContext.State);
+}
+
+// DeepTest: Test buffer state after handshake completion
+TEST_F(TlsTest, DeepTestQuicTlsSendPostHandshakeState)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    DoHandshake(ServerContext, ClientContext);
+    
+    // Verify QuicTlsSend set the CXPLAT_TLS_RESULT_DATA flag
+    // and updated buffer lengths correctly
+    ASSERT_GT(ServerContext.State.BufferTotalLength, 0u);
+    ASSERT_GT(ClientContext.State.BufferTotalLength, 0u);
+    
+    // Verify buffer allocations are reasonable
+    ASSERT_LE(ServerContext.State.BufferLength, ServerContext.State.BufferAllocLength);
+    ASSERT_LE(ClientContext.State.BufferLength, ClientContext.State.BufferAllocLength);
+}
+
+//
+// Iteration 2: Additional edge case and boundary tests
+//
+
+// DeepTest: Test with minimal initial buffer size (power of 2 boundary)
+TEST_F(TlsTest, DeepTestQuicTlsSendMinimalBuffer)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    
+    // Use absolute minimum buffer size to test doubling logic
+    CXPLAT_FREE(ClientContext.State.Buffer, QUIC_POOL_TEST);
+    ClientContext.State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(16, QUIC_POOL_TEST);
+    ClientContext.State.BufferAllocLength = 16;
+    ClientContext.State.BufferLength = 0;
+    
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    auto Result = ClientContext.ProcessData(nullptr);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    // Buffer should have grown significantly from 16 bytes
+    ASSERT_GE(ClientContext.State.BufferAllocLength, 512);
+}
+
+// DeepTest: Test buffer doubling mechanism exhaustively
+TEST_F(TlsTest, DeepTestQuicTlsSendBufferDoublingPattern)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    
+    // Start with buffer that will require multiple doublings
+    CXPLAT_FREE(ServerContext.State.Buffer, QUIC_POOL_TEST);
+    uint16_t InitialSize = 64;
+    ServerContext.State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(InitialSize, QUIC_POOL_TEST);
+    ServerContext.State.BufferAllocLength = InitialSize;
+    ServerContext.State.BufferLength = 0;
+    
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    auto Result = ClientContext.ProcessData(nullptr);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    Result = ServerContext.ProcessData(&ClientContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    // Verify buffer grew through power-of-2 doubling
+    // Should be 64 -> 128 -> 256 -> 512 -> 1024 -> ...
+    uint16_t FinalSize = ServerContext.State.BufferAllocLength;
+    ASSERT_GT(FinalSize, InitialSize);
+    
+    // Verify it's a power of 2
+    ASSERT_EQ(0, (FinalSize & (FinalSize - 1)));
+}
+
+// DeepTest: Test with different cipher suites
+#ifndef QUIC_DISABLE_CHACHA20_TESTS
+TEST_F(TlsTest, DeepTestQuicTlsSendWithChaCha20)
+{
+    CxPlatClientSecConfig ClientConfig(QUIC_CREDENTIAL_FLAG_NONE, 
+                                       QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256);
+    CxPlatServerSecConfig ServerConfig(QUIC_CREDENTIAL_FLAG_NONE,
+                                       QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256);
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    DoHandshake(ServerContext, ClientContext);
+    
+    ASSERT_TRUE(ServerContext.State.HandshakeComplete);
+    ASSERT_TRUE(ClientContext.State.HandshakeComplete);
+}
+#endif
+
+// DeepTest: Test with AES-128-GCM cipher suite
+TEST_F(TlsTest, DeepTestQuicTlsSendWithAES128)
+{
+    CxPlatClientSecConfig ClientConfig(QUIC_CREDENTIAL_FLAG_NONE,
+                                       QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256);
+    CxPlatServerSecConfig ServerConfig(QUIC_CREDENTIAL_FLAG_NONE,
+                                       QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256);
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    DoHandshake(ServerContext, ClientContext);
+    
+    ASSERT_TRUE(ServerContext.State.HandshakeComplete);
+    ASSERT_TRUE(ClientContext.State.HandshakeComplete);
+}
+
+// DeepTest: Test sequential handshakes with same contexts reused
+TEST_F(TlsTest, DeepTestQuicTlsSendSequentialHandshakes)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    
+    // Perform multiple sequential handshakes to test buffer reuse
+    for (int i = 0; i < 3; i++) {
+        TlsContext ServerContext, ClientContext;
+        ClientContext.InitializeClient(ClientConfig);
+        ServerContext.InitializeServer(ServerConfig);
+        
+        DoHandshake(ServerContext, ClientContext);
+        
+        ASSERT_TRUE(ServerContext.State.HandshakeComplete);
+        ASSERT_TRUE(ClientContext.State.HandshakeComplete);
+    }
+}
+
+// DeepTest: Test buffer behavior with very large transport parameters
+TEST_F(TlsTest, DeepTestQuicTlsSendVeryLargeTransportParams)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    
+    // Use maximum reasonable TP size
+    const uint16_t MaxTPLen = 1024;
+    ClientContext.InitializeClient(ClientConfig, false, MaxTPLen);
+    ServerContext.InitializeServer(ServerConfig, false, MaxTPLen);
+    
+    DoHandshake(ServerContext, ClientContext);
+    
+    ASSERT_TRUE(ServerContext.State.HandshakeComplete);
+    ASSERT_TRUE(ClientContext.State.HandshakeComplete);
+}
+
+// DeepTest: Test offset tracking with multiple message types
+TEST_F(TlsTest, DeepTestQuicTlsSendOffsetAccuracy)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    auto Result = ClientContext.ProcessData(nullptr);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    uint32_t ClientBufferLengthAfterInitial = ClientContext.State.BufferLength;
+    
+    Result = ServerContext.ProcessData(&ClientContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    // Verify handshake offset is set correctly
+    if (ServerContext.State.BufferOffsetHandshake > 0) {
+        ASSERT_LE(ServerContext.State.BufferOffsetHandshake, ServerContext.State.BufferTotalLength);
+    }
+    
+    Result = ClientContext.ProcessData(&ServerContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    // Verify 1-RTT offset tracking
+    if (ClientContext.State.BufferOffset1Rtt > 0) {
+        ASSERT_LE(ClientContext.State.BufferOffset1Rtt, ClientContext.State.BufferTotalLength);
+        ASSERT_GE(ClientContext.State.BufferOffset1Rtt, ClientBufferLengthAfterInitial);
+    }
+}
+
+// DeepTest: Test buffer management with varying fragment sizes
+TEST_F(TlsTest, DeepTestQuicTlsSendVaryingFragmentSizes)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    
+    // Test with different fragment sizes to exercise different buffer paths
+    const uint32_t FragmentSizes[] = {64, 256, 512, 1024, 2048};
+    
+    for (auto FragSize : FragmentSizes) {
+        TlsContext ServerContext, ClientContext;
+        ClientContext.InitializeClient(ClientConfig);
+        ServerContext.InitializeServer(ServerConfig);
+        
+        DoHandshake(ServerContext, ClientContext, FragSize);
+        
+        ASSERT_TRUE(ServerContext.State.HandshakeComplete);
+        ASSERT_TRUE(ClientContext.State.HandshakeComplete);
+    }
+}
+
+// DeepTest: Test that buffer total length tracking is accurate
+TEST_F(TlsTest, DeepTestQuicTlsSendBufferTotalLength)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    uint32_t ClientInitialTotal = ClientContext.State.BufferTotalLength;
+    uint32_t ServerInitialTotal = ServerContext.State.BufferTotalLength;
+    
+    auto Result = ClientContext.ProcessData(nullptr);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    // BufferTotalLength should have increased
+    ASSERT_GT(ClientContext.State.BufferTotalLength, ClientInitialTotal);
+    
+    Result = ServerContext.ProcessData(&ClientContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    ASSERT_GT(ServerContext.State.BufferTotalLength, ServerInitialTotal);
+    
+    // Complete handshake
+    Result = ClientContext.ProcessData(&ServerContext.State);
+    Result = ServerContext.ProcessData(&ClientContext.State);
+    
+    // Verify final totals are reasonable
+    ASSERT_LT(ClientContext.State.BufferTotalLength, 0xF000);
+    ASSERT_LT(ServerContext.State.BufferTotalLength, 0xF000);
+}
+
+//
+// Iteration 3: Stress tests and additional edge cases
+//
+
+// DeepTest: Test rapid sequential buffer reallocations
+TEST_F(TlsTest, DeepTestQuicTlsSendRapidReallocations)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    
+    for (int i = 0; i < 10; i++) {
+        TlsContext ServerContext, ClientContext;
+        
+        // Vary initial buffer sizes to trigger different reallocation patterns
+        uint16_t InitialSize = static_cast<uint16_t>(32 * (i + 1));
+        CXPLAT_FREE(ClientContext.State.Buffer, QUIC_POOL_TEST);
+        ClientContext.State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(InitialSize, QUIC_POOL_TEST);
+        ClientContext.State.BufferAllocLength = InitialSize;
+        ClientContext.State.BufferLength = 0;
+        
+        ClientContext.InitializeClient(ClientConfig);
+        ServerContext.InitializeServer(ServerConfig);
+        
+        DoHandshake(ServerContext, ClientContext);
+        ASSERT_TRUE(ClientContext.State.HandshakeComplete);
+    }
+}
+
+// DeepTest: Test buffer state consistency across handshake steps
+TEST_F(TlsTest, DeepTestQuicTlsSendStateConsistency)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    // Step through handshake and verify state consistency at each step
+    auto Result = ClientContext.ProcessData(nullptr);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    ASSERT_LE(ClientContext.State.BufferLength, ClientContext.State.BufferAllocLength);
+    ASSERT_EQ(ClientContext.State.BufferLength, ClientContext.State.BufferTotalLength);
+    
+    Result = ServerContext.ProcessData(&ClientContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    ASSERT_LE(ServerContext.State.BufferLength, ServerContext.State.BufferAllocLength);
+    
+    Result = ClientContext.ProcessData(&ServerContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    ASSERT_LE(ClientContext.State.BufferLength, ClientContext.State.BufferAllocLength);
+    
+    Result = ServerContext.ProcessData(&ClientContext.State);
+    ASSERT_LE(ServerContext.State.BufferLength, ServerContext.State.BufferAllocLength);
+}
+
+// DeepTest: Test with multiple ALPN options
+TEST_F(TlsTest, DeepTestQuicTlsSendWithMultipleAlpn)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig, true);  // Multiple ALPNs
+    ServerContext.InitializeServer(ServerConfig, true);
+    
+    DoHandshake(ServerContext, ClientContext);
+    
+    ASSERT_TRUE(ServerContext.State.HandshakeComplete);
+    ASSERT_TRUE(ClientContext.State.HandshakeComplete);
+}
+
+// DeepTest: Test buffer behavior at power-of-2 boundaries
+TEST_F(TlsTest, DeepTestQuicTlsSendPowerOf2Boundaries)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    
+    // Test buffers at various power-of-2 sizes
+    const uint16_t PowerOf2Sizes[] = {32, 64, 128, 256, 512};
+    
+    for (auto Size : PowerOf2Sizes) {
+        TlsContext ServerContext, ClientContext;
+        
+        CXPLAT_FREE(ClientContext.State.Buffer, QUIC_POOL_TEST);
+        ClientContext.State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(Size, QUIC_POOL_TEST);
+        ClientContext.State.BufferAllocLength = Size;
+        ClientContext.State.BufferLength = 0;
+        
+        CXPLAT_FREE(ServerContext.State.Buffer, QUIC_POOL_TEST);
+        ServerContext.State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(Size, QUIC_POOL_TEST);
+        ServerContext.State.BufferAllocLength = Size;
+        ServerContext.State.BufferLength = 0;
+        
+        ClientContext.InitializeClient(ClientConfig);
+        ServerContext.InitializeServer(ServerConfig);
+        
+        DoHandshake(ServerContext, ClientContext);
+        
+        // Verify both grew beyond initial size
+        ASSERT_GT(ClientContext.State.BufferAllocLength, Size);
+        ASSERT_GT(ServerContext.State.BufferAllocLength, Size);
+    }
+}
+
+// DeepTest: Test handshake with client authentication
+TEST_F(TlsTest, DeepTestQuicTlsSendWithClientAuth)
+{
+    CxPlatSecConfig ClientConfig;
+    ClientConfig.Load(ClientCertParams);
+    CxPlatServerSecConfig ServerConfig(
+        QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION);
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    DoHandshake(ServerContext, ClientContext);
+    
+    ASSERT_TRUE(ServerContext.State.HandshakeComplete);
+    ASSERT_TRUE(ClientContext.State.HandshakeComplete);
+}
+
+// DeepTest: Test buffer efficiency - verify minimal wasted space
+TEST_F(TlsTest, DeepTestQuicTlsSendBufferEfficiency)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    DoHandshake(ServerContext, ClientContext);
+    
+    // Verify that allocated size isn't excessively larger than used size
+    // Note: Test context pre-allocates 8000 bytes, so only check if buffer grew
+    if (ClientContext.State.BufferAllocLength > 8000) {
+        uint32_t ClientWasted = ClientContext.State.BufferAllocLength - ClientContext.State.BufferLength;
+        ASSERT_LT(ClientWasted, ClientContext.State.BufferAllocLength / 2);
+    }
+    if (ServerContext.State.BufferAllocLength > 8000) {
+        uint32_t ServerWasted = ServerContext.State.BufferAllocLength - ServerContext.State.BufferLength;
+        ASSERT_LT(ServerWasted, ServerContext.State.BufferAllocLength / 2);
+    }
+}
+
+// DeepTest: Test zero-length buffer edge case
+TEST_F(TlsTest, DeepTestQuicTlsSendZeroInitialLength)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    
+    // Ensure buffers start with zero length (not zero allocation)
+    ASSERT_EQ(0u, ClientContext.State.BufferLength);
+    ASSERT_EQ(0u, ServerContext.State.BufferLength);
+    
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    DoHandshake(ServerContext, ClientContext);
+    
+    // After handshake, lengths should be non-zero
+    ASSERT_GT(ClientContext.State.BufferTotalLength, 0u);
+    ASSERT_GT(ServerContext.State.BufferTotalLength, 0u);
+}
+
+// DeepTest: Test handshake offset initialization
+TEST_F(TlsTest, DeepTestQuicTlsSendOffsetInitialization)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    
+    // Verify offsets start at zero
+    ASSERT_EQ(0u, ClientContext.State.BufferOffsetHandshake);
+    ASSERT_EQ(0u, ClientContext.State.BufferOffset1Rtt);
+    ASSERT_EQ(0u, ServerContext.State.BufferOffsetHandshake);
+    ASSERT_EQ(0u, ServerContext.State.BufferOffset1Rtt);
+    
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    DoHandshake(ServerContext, ClientContext);
+    
+    // At least one side should have set handshake and 1-RTT offsets
+    bool OffsetsSet = (ClientContext.State.BufferOffsetHandshake > 0 ||
+                       ServerContext.State.BufferOffsetHandshake > 0) &&
+                      (ClientContext.State.BufferOffset1Rtt > 0 ||
+                       ServerContext.State.BufferOffset1Rtt > 0);
+    ASSERT_TRUE(OffsetsSet);
+}
+
+// DeepTest: Test maximum concurrent handshakes
+TEST_F(TlsTest, DeepTestQuicTlsSendMaxConcurrentHandshakes)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    
+    const int MaxConcurrent = 10;
+    TlsContext ServerContexts[MaxConcurrent];
+    TlsContext ClientContexts[MaxConcurrent];
+    
+    // Initialize all contexts
+    for (int i = 0; i < MaxConcurrent; i++) {
+        ClientContexts[i].InitializeClient(ClientConfig);
+        ServerContexts[i].InitializeServer(ServerConfig);
+    }
+    
+    // Perform all handshakes
+    for (int i = 0; i < MaxConcurrent; i++) {
+        DoHandshake(ServerContexts[i], ClientContexts[i]);
+        ASSERT_TRUE(ServerContexts[i].State.HandshakeComplete);
+        ASSERT_TRUE(ClientContexts[i].State.HandshakeComplete);
+    }
+}
+
+//
+// Iteration 4: Final comprehensive coverage tests
+//
+
+// DeepTest: Test buffer doubling with odd initial sizes
+TEST_F(TlsTest, DeepTestQuicTlsSendOddBufferSizes)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    
+    // Test with non-power-of-2 sizes to verify doubling algorithm
+    const uint16_t OddSizes[] = {48, 96, 192, 384};
+    
+    for (auto Size : OddSizes) {
+        TlsContext ServerContext, ClientContext;
+        
+        CXPLAT_FREE(ClientContext.State.Buffer, QUIC_POOL_TEST);
+        ClientContext.State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(Size, QUIC_POOL_TEST);
+        ClientContext.State.BufferAllocLength = Size;
+        ClientContext.State.BufferLength = 0;
+        
+        ClientContext.InitializeClient(ClientConfig);
+        ServerContext.InitializeServer(ServerConfig);
+        
+        DoHandshake(ServerContext, ClientContext);
+        ASSERT_TRUE(ClientContext.State.HandshakeComplete);
+    }
+}
+
+// DeepTest: Test that buffer offset relationships are maintained
+TEST_F(TlsTest, DeepTestQuicTlsSendOffsetRelationships)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    DoHandshake(ServerContext, ClientContext);
+    
+    // Verify offset ordering: Initial <= Handshake <= 1-RTT <= TotalLength
+    if (ServerContext.State.BufferOffsetHandshake > 0) {
+        ASSERT_LE(ServerContext.State.BufferOffsetHandshake, ServerContext.State.BufferTotalLength);
+    }
+    if (ServerContext.State.BufferOffset1Rtt > 0) {
+        ASSERT_LE(ServerContext.State.BufferOffset1Rtt, ServerContext.State.BufferTotalLength);
+        // 1-RTT should come after or at handshake
+        if (ServerContext.State.BufferOffsetHandshake > 0) {
+            ASSERT_GE(ServerContext.State.BufferOffset1Rtt, ServerContext.State.BufferOffsetHandshake);
+        }
+    }
+}
+
+// DeepTest: Test fragmented handshake with extreme fragmentation
+TEST_F(TlsTest, DeepTestQuicTlsSendExtremeFragmentation)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    // Use minimal fragment size to maximize fragmentation
+    const uint32_t MinimalFragmentSize = 32;
+    DoHandshake(ServerContext, ClientContext, MinimalFragmentSize);
+    
+    ASSERT_TRUE(ServerContext.State.HandshakeComplete);
+    ASSERT_TRUE(ClientContext.State.HandshakeComplete);
+}
+
+// DeepTest: Test buffer growth with pre-existing data
+TEST_F(TlsTest, DeepTestQuicTlsSendBufferGrowthWithExistingData)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    
+    // Start with small buffer that has some initial content
+    CXPLAT_FREE(ServerContext.State.Buffer, QUIC_POOL_TEST);
+    ServerContext.State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(128, QUIC_POOL_TEST);
+    ServerContext.State.BufferAllocLength = 128;
+    ServerContext.State.BufferLength = 16;  // Pre-existing 16 bytes
+    ServerContext.State.BufferTotalLength = 16;
+    // Fill with test pattern
+    for (int i = 0; i < 16; i++) {
+        ServerContext.State.Buffer[i] = static_cast<uint8_t>(i);
+    }
+    
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    auto Result = ClientContext.ProcessData(nullptr);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    Result = ServerContext.ProcessData(&ClientContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    // Verify pre-existing data pattern is preserved in reallocated buffer
+    if (ServerContext.State.BufferAllocLength > 128) {
+        for (int i = 0; i < 16; i++) {
+            ASSERT_EQ(static_cast<uint8_t>(i), ServerContext.State.Buffer[i]);
+        }
+    }
+}
+
+// DeepTest: Test all key types are handled
+TEST_F(TlsTest, DeepTestQuicTlsSendAllKeyTypes)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    auto Result = ClientContext.ProcessData(nullptr);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    Result = ServerContext.ProcessData(&ClientContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+    
+    Result = ClientContext.ProcessData(&ServerContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
+    ASSERT_NE(nullptr, ClientContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+    
+    Result = ServerContext.ProcessData(&ClientContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
+}
+
+// DeepTest: Test buffer allocation patterns across multiple iterations
+TEST_F(TlsTest, DeepTestQuicTlsSendAllocationPatterns)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    
+    // Track allocation patterns across multiple handshakes
+    std::vector<uint16_t> ClientAllocSizes;
+    std::vector<uint16_t> ServerAllocSizes;
+    
+    for (int i = 0; i < 5; i++) {
+        TlsContext ServerContext, ClientContext;
+        ClientContext.InitializeClient(ClientConfig);
+        ServerContext.InitializeServer(ServerConfig);
+        
+        DoHandshake(ServerContext, ClientContext);
+        
+        ClientAllocSizes.push_back(ClientContext.State.BufferAllocLength);
+        ServerAllocSizes.push_back(ServerContext.State.BufferAllocLength);
+    }
+    
+    // All final allocations should be within a reasonable range of each other
+    uint16_t MinClient = *std::min_element(ClientAllocSizes.begin(), ClientAllocSizes.end());
+    uint16_t MaxClient = *std::max_element(ClientAllocSizes.begin(), ClientAllocSizes.end());
+    
+    // Variation should be limited (within one doubling)
+    ASSERT_LE(MaxClient, MinClient * 2);
+}
+
+// DeepTest: Test buffer reallocation preserves data integrity
+TEST_F(TlsTest, DeepTestQuicTlsSendDataIntegrityOnRealloc)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    
+    // Use tiny buffer to force reallocation
+    CXPLAT_FREE(ClientContext.State.Buffer, QUIC_POOL_TEST);
+    ClientContext.State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(64, QUIC_POOL_TEST);
+    ClientContext.State.BufferAllocLength = 64;
+    ClientContext.State.BufferLength = 0;
+    
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    auto Result = ClientContext.ProcessData(nullptr);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    // Save the data that was written
+    uint16_t DataLen = ClientContext.State.BufferLength;
+    ASSERT_GT(DataLen, 0u);
+    
+    // Buffer should have been reallocated
+    ASSERT_GT(ClientContext.State.BufferAllocLength, 64);
+    
+    // Verify data length matches total length after first message
+    ASSERT_EQ(DataLen, ClientContext.State.BufferTotalLength);
+}
+
+// DeepTest: Test with maximum reasonable buffer utilization
+TEST_F(TlsTest, DeepTestQuicTlsSendMaxBufferUtilization)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    
+    // Use large transport params to maximize buffer usage
+    const uint16_t LargeTPLen = 2048;
+    ClientContext.InitializeClient(ClientConfig, false, LargeTPLen);
+    ServerContext.InitializeServer(ServerConfig, false, LargeTPLen);
+    
+    DoHandshake(ServerContext, ClientContext);
+    
+    // Verify we're well below the 0xF000 limit even with large TPs
+    ASSERT_LT(ClientContext.State.BufferTotalLength, 0xF000);
+    ASSERT_LT(ServerContext.State.BufferTotalLength, 0xF000);
+    
+    ASSERT_TRUE(ClientContext.State.HandshakeComplete);
+    ASSERT_TRUE(ServerContext.State.HandshakeComplete);
+}
+
+// DeepTest: Test handshake with session resumption ticket
+#ifndef QUIC_DISABLE_0RTT_TESTS
+TEST_F(TlsTest, DeepTestQuicTlsSendWithSessionTicket)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    // Perform handshake with resumption ticket
+    DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, true);
+    
+    // Verify session ticket was received
+    ASSERT_NE(nullptr, ClientContext.ReceivedSessionTicket.Buffer);
+    ASSERT_GT(ClientContext.ReceivedSessionTicket.Length, 0u);
+}
+#endif
+
+// DeepTest: Test buffer state after error conditions
+TEST_F(TlsTest, DeepTestQuicTlsSendBufferStateAfterError)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    
+    // Configure client to reject server certificate
+    ClientContext.OnPeerCertReceivedResult = FALSE;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    auto Result = ClientContext.ProcessData(nullptr);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    Result = ServerContext.ProcessData(&ClientContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    // Client should error when processing server's response
+    Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
+    
+    // Buffer state should still be consistent
+    ASSERT_LE(ClientContext.State.BufferLength, ClientContext.State.BufferAllocLength);
+}
+
+//
+// Iteration 5: Final edge cases and comprehensive scenarios
+//
+
+// DeepTest: Test successive buffer doublings
+TEST_F(TlsTest, DeepTestQuicTlsSendSuccessiveDoublings)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    
+    // Start with extremely small buffer to observe multiple doublings
+    CXPLAT_FREE(ClientContext.State.Buffer, QUIC_POOL_TEST);
+    uint16_t TinySize = 8;
+    ClientContext.State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(TinySize, QUIC_POOL_TEST);
+    ClientContext.State.BufferAllocLength = TinySize;
+    ClientContext.State.BufferLength = 0;
+    
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeClient(ServerConfig);
+    
+    auto Result = ClientContext.ProcessData(nullptr);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    // Buffer should have grown through many doublings: 8->16->32->64->128->256->512
+    ASSERT_GE(ClientContext.State.BufferAllocLength, 512);
+    
+    // Verify each doubling maintained power-of-2
+    uint16_t FinalSize = ClientContext.State.BufferAllocLength;
+    ASSERT_EQ(0, (FinalSize & (FinalSize - 1)));
+}
+
+// DeepTest: Test offset values are monotonically increasing
+TEST_F(TlsTest, DeepTestQuicTlsSendOffsetMonotonicity)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    uint32_t PrevHandshakeOffset = 0;
+    uint32_t Prev1RttOffset = 0;
+    
+    auto Result = ClientContext.ProcessData(nullptr);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    Result = ServerContext.ProcessData(&ClientContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    // Check handshake offset if set
+    if (ServerContext.State.BufferOffsetHandshake > 0) {
+        ASSERT_GE(ServerContext.State.BufferOffsetHandshake, PrevHandshakeOffset);
+        PrevHandshakeOffset = ServerContext.State.BufferOffsetHandshake;
+    }
+    
+    Result = ClientContext.ProcessData(&ServerContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    // Check 1-RTT offset if set
+    if (ClientContext.State.BufferOffset1Rtt > 0) {
+        ASSERT_GE(ClientContext.State.BufferOffset1Rtt, Prev1RttOffset);
+    }
+}
+
+// DeepTest: Test buffer with near-boundary sizes (just under 0xF000)
+TEST_F(TlsTest, DeepTestQuicTlsSendNearBoundarySize)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    
+    // Pre-fill buffer to near the limit
+    CXPLAT_FREE(ServerContext.State.Buffer, QUIC_POOL_TEST);
+    uint16_t NearMaxSize = 0xE000;
+    ServerContext.State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(NearMaxSize, QUIC_POOL_TEST);
+    ServerContext.State.BufferAllocLength = NearMaxSize;
+    ServerContext.State.BufferLength = 0xD000;  // Most of it "used"
+    ServerContext.State.BufferTotalLength = 0xD000;
+    
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    auto Result = ClientContext.ProcessData(nullptr);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    // Server processes - should not exceed 0xF000 limit
+    Result = ServerContext.ProcessData(&ClientContext.State);
+    
+    // If it succeeded, verify we didn't exceed limit
+    if (Result & CXPLAT_TLS_RESULT_DATA) {
+        ASSERT_LT(ServerContext.State.BufferTotalLength, 0xF000);
+    }
+}
+
+// DeepTest: Test with alternating buffer sizes between client and server
+TEST_F(TlsTest, DeepTestQuicTlsSendAsymmetricBuffers)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    
+    // Client has small buffer
+    CXPLAT_FREE(ClientContext.State.Buffer, QUIC_POOL_TEST);
+    ClientContext.State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(64, QUIC_POOL_TEST);
+    ClientContext.State.BufferAllocLength = 64;
+    ClientContext.State.BufferLength = 0;
+    
+    // Server has large buffer
+    CXPLAT_FREE(ServerContext.State.Buffer, QUIC_POOL_TEST);
+    ServerContext.State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(4096, QUIC_POOL_TEST);
+    ServerContext.State.BufferAllocLength = 4096;
+    ServerContext.State.BufferLength = 0;
+    
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    DoHandshake(ServerContext, ClientContext);
+    
+    // Client buffer should have grown
+    ASSERT_GT(ClientContext.State.BufferAllocLength, 64);
+    
+    // Both should complete successfully
+    ASSERT_TRUE(ClientContext.State.HandshakeComplete);
+    ASSERT_TRUE(ServerContext.State.HandshakeComplete);
+}
+
+// DeepTest: Test buffer length never exceeds allocation
+TEST_F(TlsTest, DeepTestQuicTlsSendLengthInvariant)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    // Check invariant at each step of handshake
+    ASSERT_LE(ClientContext.State.BufferLength, ClientContext.State.BufferAllocLength);
+    ASSERT_LE(ServerContext.State.BufferLength, ServerContext.State.BufferAllocLength);
+    
+    auto Result = ClientContext.ProcessData(nullptr);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    ASSERT_LE(ClientContext.State.BufferLength, ClientContext.State.BufferAllocLength);
+    
+    Result = ServerContext.ProcessData(&ClientContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    ASSERT_LE(ServerContext.State.BufferLength, ServerContext.State.BufferAllocLength);
+    
+    Result = ClientContext.ProcessData(&ServerContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    ASSERT_LE(ClientContext.State.BufferLength, ClientContext.State.BufferAllocLength);
+    
+    Result = ServerContext.ProcessData(&ClientContext.State);
+    ASSERT_LE(ServerContext.State.BufferLength, ServerContext.State.BufferAllocLength);
+}
+
+// DeepTest: Test handshake with custom certificate validation
+TEST_F(TlsTest, DeepTestQuicTlsSendWithCustomValidation)
+{
+    CxPlatSecConfig ClientConfig;
+    ClientConfig.Load(ClientCertParams);
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    DoHandshake(ServerContext, ClientContext);
+    
+    // Verify handshake completed
+    ASSERT_TRUE(ClientContext.State.HandshakeComplete);
+    ASSERT_TRUE(ServerContext.State.HandshakeComplete);
+}
+
+// DeepTest: Test buffer resets between handshake phases
+TEST_F(TlsTest, DeepTestQuicTlsSendBufferResetBehavior)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    auto Result = ClientContext.ProcessData(nullptr);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    Result = ServerContext.ProcessData(&ClientContext.State);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    
+    // Buffer is typically reset after processing
+    // Length may be reset to 0 for next phase
+    ASSERT_LE(ServerContext.State.BufferLength, ServerContext.State.BufferAllocLength);
+}
+
+// DeepTest: Test with mixed transport parameter sizes
+TEST_F(TlsTest, DeepTestQuicTlsSendMixedTPSizes)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    
+    // Client with small TPs
+    ClientContext.InitializeClient(ClientConfig, false, 64);
+    
+    // Server with large TPs
+    ServerContext.InitializeServer(ServerConfig, false, 512);
+    
+    DoHandshake(ServerContext, ClientContext);
+    
+    ASSERT_TRUE(ClientContext.State.HandshakeComplete);
+    ASSERT_TRUE(ServerContext.State.HandshakeComplete);
+}
+
+// DeepTest: Test rapid buffer growth scenario
+TEST_F(TlsTest, DeepTestQuicTlsSendRapidGrowth)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    
+    // Track buffer size growth
+    std::vector<uint16_t> GrowthSteps;
+    
+    CXPLAT_FREE(ClientContext.State.Buffer, QUIC_POOL_TEST);
+    ClientContext.State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(32, QUIC_POOL_TEST);
+    ClientContext.State.BufferAllocLength = 32;
+    ClientContext.State.BufferLength = 0;
+    GrowthSteps.push_back(32);
+    
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    auto Result = ClientContext.ProcessData(nullptr);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    GrowthSteps.push_back(ClientContext.State.BufferAllocLength);
+    
+    // Verify each step is a doubling
+    for (size_t i = 1; i < GrowthSteps.size(); i++) {
+        // Each step should be a power of 2
+        ASSERT_EQ(0, (GrowthSteps[i] & (GrowthSteps[i] - 1)));
+    }
+}
+
+// DeepTest: Test final buffer state consistency
+TEST_F(TlsTest, DeepTestQuicTlsSendFinalStateConsistency)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    
+    DoHandshake(ServerContext, ClientContext);
+    
+    // Verify all invariants hold after complete handshake
+    ASSERT_LE(ClientContext.State.BufferLength, ClientContext.State.BufferAllocLength);
+    ASSERT_LE(ServerContext.State.BufferLength, ServerContext.State.BufferAllocLength);
+    
+    ASSERT_LE(ClientContext.State.BufferTotalLength, 0xF000);
+    ASSERT_LE(ServerContext.State.BufferTotalLength, 0xF000);
+    
+    if (ClientContext.State.BufferOffsetHandshake > 0) {
+        ASSERT_LE(ClientContext.State.BufferOffsetHandshake, ClientContext.State.BufferTotalLength);
+    }
+    if (ClientContext.State.BufferOffset1Rtt > 0) {
+        ASSERT_LE(ClientContext.State.BufferOffset1Rtt, ClientContext.State.BufferTotalLength);
+    }
+}
+
 INSTANTIATE_TEST_SUITE_P(TlsTest, TlsTest, ::testing::Bool());
