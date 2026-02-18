@@ -356,3 +356,10 @@ jobs:
               issue_number: context.payload.pull_request.number,
               body: comment
             });
+
+      - name: Fail workflow if post-PR tests failed
+        if: steps.test-post.outputs.test_status != 'success'
+        shell: pwsh
+        run: |
+          Write-Error "Post-PR tests failed or were skipped. Failing the workflow."
+          exit 1
