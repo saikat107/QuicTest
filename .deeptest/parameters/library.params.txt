@@ -1,0 +1,7 @@
+component = Library
+source = .\src\core\library.c
+header = .\src\core\library.h
+harness = .\src\core\unittest\LibraryTest.cpp
+build = .\scripts\build.ps1
+test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
+coverage_result = .\artifacts\coverage\msquiccoverage.xml

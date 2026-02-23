@@ -1,0 +1,7 @@
+component = PacketBuilder
+source = .\src\core\packet_builder.c
+header = .\src\core\packet_builder.h
+harness = .\src\core\unittest\PacketBuilderTest.cpp
+build = .\scripts\build.ps1
+test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
+coverage_result = .\artifacts\coverage\msquiccoverage.xml

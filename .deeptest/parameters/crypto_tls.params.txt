@@ -1,0 +1,7 @@
+component = CryptoTls
+source = .\src\core\crypto_tls.c
+header = .\src\core\crypto.h
+harness = .\src\core\unittest\CryptoTlsTest.cpp
+build = .\scripts\build.ps1
+test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
+coverage_result = .\artifacts\coverage\msquiccoverage.xml

@@ -3,25 +3,34 @@ name: patch-validating-test
 description: This skill generates unit tests that validate code patches by exercising modified lines. Tests must fail before the patch and pass after applying it.
 ---
 
-You are generating patch-validating tests for changes in {{component}}. Your task is to create unit tests that exercise the modified code paths, ensuring the tests fail without the patch and pass with it.
+You are generating patch-validating tests for changes in {{component}}. Your task is to create unit tests that exercise the modified code paths, ensuring the tests fail without the patch and pass with it. Feel free to use other available skills if needed, specially 
+1. "semantic-indexer" and "query-repo" for generating and querying comprehensive summary of any source code
+2. "unit-test" and "component-test" to create test cases
+3. "test-quality-checker" for checking the quality of the tests, 
+4. "coverage-analysis" if there is no coverage tool available, of the coverage tool does not run properly. 
 
 # Step 1: Setup Test Environment
 
-Create a temporary directory with the patched version of the project:
+You are provided with two project directories and a list of changed files:
+- **Pre-PR (unpatched)**: `{{pre_pr_path}}` - the project at the base commit
+- **Post-PR (patched)**: `{{post_pr_path}}` - the project after the PR changes
+- **Changed files**: `{{changed_files}}` - a text file listing relative paths of all changed files
 
-```bash
-# Create temp directory and copy project
-TEMP_DIR=$(mktemp -d)
-cp -r {{project_path}}/* "$TEMP_DIR/"
+Generate a patch file by diffing only the changed files between the two directories:
 
-# Apply the patch to the temp directory
-cd "$TEMP_DIR"
-patch -p1 < {{patch}}
+```powershell
+# Generate patch from the two directories using git diff --no-index
+# Only diff files listed in the changed_files list
+$changedFiles = Get-Content {{changed_files}}
+$diffOutput = @()
+foreach ($file in $changedFiles) {
+    $prePath = Join-Path {{pre_pr_path}} $file
+    $postPath = Join-Path {{post_pr_path}} $file
+    $diffOutput += git -c core.safecrlf=false -c core.autocrlf=false diff --no-index $prePath $postPath 2>$null
+}
+$diffOutput | Out-File -FilePath .deeptest/patch_analysis/generated.patch -Encoding utf8
+$PATCH_FILE = ".deeptest/patch_analysis/generated.patch"
 ```
-
-You now have two environments:
-- **Original (unpatched)**: `{{project_path}}`
-- **Patched**: `$TEMP_DIR`
 
 # Step 2: Analyze the Patch
 
@@ -29,10 +38,10 @@ Use the provided scripts to parse and analyze the patch:
 
 ```bash
 # Parse the patch file to extract changed files, hunks, and line information
-python scripts/patch_parser.py parse {{patch}} --json .deeptest/patch_analysis/patch_info.json
+python scripts/patch_parser.py parse "$PATCH_FILE" --json .deeptest/patch_analysis/patch_info.json
 
 # Analyze the patch to identify affected functions and code paths
-python scripts/patch_analyzer.py analyze {{patch}} --source-root {{project_path}} --json .deeptest/patch_analysis/analysis.json --md .deeptest/patch_analysis/report.md
+python scripts/patch_analyzer.py analyze "$PATCH_FILE" --source-root {{pre_pr_path}} --json .deeptest/patch_analysis/analysis.json --md .deeptest/patch_analysis/report.md
 ```
 
 The analysis provides:
@@ -63,8 +72,8 @@ Create **one test per code path** that:
 3. Asserts on the expected outcome
 
 **CRITICAL INVARIANT**: Each test must satisfy:
-- ❌ **FAIL** when run against `{{project_path}}` (unpatched)
-- ✅ **PASS** when run against `$TEMP_DIR` (patched)
+- ❌ **FAIL** when run against `{{pre_pr_path}}` (unpatched)
+- ✅ **PASS** when run against `{{post_pr_path}}` (patched)
 
 This invariant ensures the test is truly validating the patch behavior.
 
@@ -74,12 +83,12 @@ For each generated test, verify the invariant holds:
 
 ```bash
 # Run tests against UNPATCHED code - should FAIL
-cd {{project_path}}
+cd {{pre_pr_path}}
 {{build}}
 {{test}}  # Expect failures
 
 # Run tests against PATCHED code - should PASS
-cd "$TEMP_DIR"
+cd {{post_pr_path}}
 {{build}}
 {{test}}  # Expect all pass
 ```
@@ -91,7 +100,7 @@ If a test passes on unpatched code, it does not validate the patch—revise the 
 Confirm the tests cover the modified lines:
 
 ```bash
-cd "$TEMP_DIR"
+cd {{post_pr_path}}
 {{coverage}}
 ```
 
@@ -102,14 +111,14 @@ Ensure:
 
 # Step 7: Finalize
 
-1. Add the validated tests to the test suite in `{{project_path}}`
-2. Clean up the temporary directory: `rm -rf "$TEMP_DIR"`
-3. Document which test covers which code path
+1. Add the validated tests to the test suite in `{{post_pr_path}}`
+2. Document which test covers which code path
 
 **Store patch analysis in .deeptest/patch_analysis folder**
 
 {{#if build}} Build command: {{build}} {{/if}}
 {{#if test}} Test command: {{test}} {{/if}}
 {{#if coverage}} Coverage command: {{coverage}} {{/if}}
-{{#if patch}} Patch file: {{patch}} {{/if}}
-{{#if project_path}} Project path: {{project_path}} {{/if}}
+{{#if pre_pr_path}} Pre-PR path (base commit): {{pre_pr_path}} {{/if}}
+{{#if post_pr_path}} Post-PR path (after changes): {{post_pr_path}} {{/if}}
+{{#if changed_files}} Changed files list: {{changed_files}} {{/if}}

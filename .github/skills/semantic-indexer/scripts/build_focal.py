@@ -20,16 +20,12 @@ from indexer import SemanticIndex
 def walk_call_graph(graph: Dict, func_map: Dict[tuple, int], index: SemanticIndex) -> int:
     """
     Recursively walk nested call graph and populate database
-    Returns function_id of root, or -1 if function has unknown file path
+    Returns function_id of root
     """
     func_name = graph["function"]
     file_path = graph.get("file", "unknown")
     start_line = graph.get("start_line", 0)
     end_line = graph.get("end_line", 0)
-    
-    # Skip functions with unknown file paths (external/system functions)
-    if file_path == "unknown":
-        return -1
     
     # Add function to DB
     func_id = index.add_function(func_name, file_path, start_line, end_line)
@@ -43,17 +39,15 @@ def walk_call_graph(graph: Dict, func_map: Dict[tuple, int], index: SemanticInde
     
     for callee_graph in calls:
         callee_id = walk_call_graph(callee_graph, func_map, index)
-        # Add call edge only if callee was added to DB
-        if callee_id != -1:
-            index.add_call_edge(func_id, callee_id)
+        # Add call edge
+        index.add_call_edge(func_id, callee_id)
     
     return func_id
 
 
 def count_functions_in_graph(graph: Dict) -> int:
-    """Count total functions in nested call graph (excludes unknown file paths)"""
-    file_path = graph.get("file", "unknown")
-    count = 0 if file_path == "unknown" else 1
+    """Count total functions in nested call graph"""
+    count = 1  # This function
     calls = graph.get("calls", [])
     if isinstance(calls, str):
         return count

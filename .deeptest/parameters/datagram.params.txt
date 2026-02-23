@@ -1,0 +1,7 @@
+component = Datagram
+source = .\src\core\datagram.c
+header = .\src\core\datagram.h
+harness = .\src\core\unittest\DatagramTest.cpp
+build = .\scripts\build.ps1
+test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
+coverage_result = .\artifacts\coverage\msquiccoverage.xml

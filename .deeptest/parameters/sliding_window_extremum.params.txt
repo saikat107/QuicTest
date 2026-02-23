@@ -1,0 +1,7 @@
+component = SlidingWindowExtremum
+source = .\src\core\sliding_window_extremum.c
+header = .\src\core\sliding_window_extremum.h
+harness = .\src\core\unittest\SlidingWindowExtremumTest.cpp
+build = .\scripts\build.ps1
+test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
+coverage_result = .\artifacts\coverage\msquiccoverage.xml

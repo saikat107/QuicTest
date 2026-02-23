@@ -3,9 +3,7 @@ name: component-test
 description: This skill generates high-quality, production-scenario tests for production code at scale. Tests are idiomatic, strictly interface-driven, contract-safe (no precondition violations), and iteratively added/refined to reach 100% coverage of the specified source file.
 ---
 
-You are generating tests for the **{{component}}** component defined in **{{source}}**{{#if header}} using **{{header}}** as an API/header hint{{/if}}. Your task is to augment the existing test harness at **{{harness}}** with high-quality, scenario-based tests that achieve **100% coverage** of **{{source}}** while remaining strictly interface-driven and contract-safe.
-
-**NOTE: Your generated tests DO NOT need to be strictly unit test. To test a component, you can invoke functions from other components and files and generate system/integration style tests. But, make sure to respect the public API contracts.**
+You are generating tests for the **{{component}}** component defined in **{{source}}**{{#if header}} using **{{header}}** as an API/header hint{{/if}}. Your task is to augment the existing test harness at **{{harness}}** with high-quality, scenario-based tests that achieve **100% coverage** of **{{source}}** while remaining strictly interface-driven and contract-safe. In addition, you should also try to find crashing bugs. 
 
 
 # Step 1 — Build/Load the Repository Contract Index (RCI)
@@ -284,9 +282,14 @@ After quality validation passes, add to the test reflection:
    - Each test MUST achieve a minimum overall score of 7/10.
    - Tests with weak assertions (only null checks, no value verification) MUST be improved.
 
+# Special Notes
+
+1. Your generated tests DO NOT need to be strictly unit test. To test a component, you can invoke functions from other components and files and generate system/integration style tests. But, make sure to respect the public API contracts.
+2. While being contract safe, you also try to generate tests that crashes, i.e., your goal is to make the program cause any other exaption but assertion failure. If you can generate test cases that throws an exception, and the test case respects the preconditions (implicit or explicit), you will find a bug in the code -- that's a clear win. To make sure you are not violating any precondition, only call the top level apis and do not arbitrarily modify any object. 
+
 ---
 # You've succeeded if:
-
+- You find bugs with contract-safe test that results in any other runtime exception but assertion failure. 
 - Tests are generated for scenarios that collectively cover **all public functions** implemented in **{{source}}**.
 - Tests never call internal/private functions or access private data.
 - Tests never violate preconditions and always preserve object/environment invariants as per the RCI.

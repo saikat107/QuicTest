@@ -1,0 +1,7 @@
+component = Path
+source = .\src\core\path.c
+header = .\src\core\path.h
+harness = .\src\core\unittest\PathTest.cpp
+build = .\scripts\build.ps1
+test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
+coverage_result = .\artifacts\coverage\msquiccoverage.xml

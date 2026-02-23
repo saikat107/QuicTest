@@ -3,19 +3,50 @@
 
 set(SOURCES
     main.cpp
+    AckTrackerTest.cpp
+    ApiTest.cpp
+    BbrTest.cpp
+    BindingTest.cpp
+    ConfigurationTest.cpp
+    CongestionControlTest.cpp
+    ConnectionPoolTest.cpp
+    ConnectionTest.cpp
+    CryptoTest.cpp
+    CryptoTlsTest.cpp
     CubicTest.cpp
+    DatagramTest.cpp
     FrameTest.cpp
+    InjectionTest.cpp
+    LibraryTest.cpp
+    ListenerTest.cpp
+    LookupTest.cpp
+    LossDetectionTest.cpp
+    MtuDiscoveryTest.cpp
+    OperationTest.cpp
+    PacketBuilderTest.cpp
     PacketNumberTest.cpp
+    PacketSpaceTest.cpp
     PartitionTest.cpp
+    PathTest.cpp
     RangeTest.cpp
     RecvBufferTest.cpp
+    RegistrationTest.cpp
+    SendBufferTest.cpp
+    SendTest.cpp
+    SentPacketMetadataTest.cpp
     SettingsTest.cpp
     SlidingWindowExtremumTest.cpp
     SpinFrame.cpp
+    StreamRecvTest.cpp
+    StreamSendTest.cpp
+    StreamSetTest.cpp
+    StreamTest.cpp
     TicketTest.cpp
+    TimerWheelTest.cpp
     TransportParamTest.cpp
     VarIntTest.cpp
     VersionNegExtTest.cpp
+    WorkerTest.cpp
 )
 
 add_executable(msquiccoretest ${SOURCES})

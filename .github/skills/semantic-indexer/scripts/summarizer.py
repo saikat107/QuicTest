@@ -73,47 +73,6 @@ def find_next_summary_target(index: SemanticIndex, entry_id: int, visited: set) 
     return None, False
 
 
-def build_callee_tree(index: SemanticIndex, callee: Dict, depth: int, max_depth: int, visited: set = None) -> Dict:
-    """
-    Build nested callee tree up to max_depth.
-    Returns callee info with nested 'calls' array.
-    """
-    if visited is None:
-        visited = set()
-    
-    func_id = callee.get("function_id")
-    if func_id in visited:
-        return {
-            "function": callee.get("function", "unknown"),
-            "file": callee.get("file", "unknown"),
-            "summary": callee.get("summary", ""),
-            "cycle": True
-        }
-    
-    visited.add(func_id)
-    
-    result = {
-        "function": callee.get("function", "unknown"),
-        "file": callee.get("file", "unknown"),
-        "summary": callee.get("summary", "")
-    }
-    
-    # Stop at max depth
-    if depth >= max_depth:
-        return result
-    
-    # Get sub-callees
-    sub_callees = index.get_callees(func_id) if func_id else []
-    if sub_callees:
-        # Limit to first 5 callees per level to avoid explosion
-        result["calls"] = [
-            build_callee_tree(index, sc, depth + 1, max_depth, visited.copy())
-            for sc in sub_callees[:5]
-        ]
-    
-    return result
-
-
 def get_next_target(index: SemanticIndex) -> Dict[str, Any]:
     """
     Find next function to summarize (bottom-up)
@@ -162,10 +121,21 @@ def get_next_target(index: SemanticIndex) -> Dict[str, Any]:
             )
             postconditions = [row[0] for row in cursor]
             
-            # Get callee summaries with their callees (nested up to depth 5 for context)
+            # Get callee summaries with their callees (nested one level for context)
             callees_with_context = []
             for c in callees:
-                callee_info = build_callee_tree(index, c, depth=1, max_depth=5)
+                callee_info = {
+                    "function": c["function"],
+                    "file": c["file"],
+                    "summary": c["summary"]
+                }
+                # Get sub-callees for additional context
+                sub_callees = index.get_callees(c["function_id"])
+                if sub_callees:
+                    callee_info["calls"] = [
+                        {"function": sc["function"], "summary": sc["summary"]} 
+                        for sc in sub_callees[:3]  # Limit to first 3 for brevity
+                    ]
                 callees_with_context.append(callee_info)
             
             return {
@@ -189,12 +159,11 @@ def get_next_target(index: SemanticIndex) -> Dict[str, Any]:
     }
 
 
-def update_summary(index: SemanticIndex, function_name: str, summary: str, function_id: int = None) -> Dict:
-    """Update function summary. If function_id provided, use it directly."""
-    
-    if function_id:
-        func_id = function_id
-    else:
+def update_summary(index: SemanticIndex, function_name: str, summary: str, function_id: Optional[int] = None) -> Dict:
+    """Update function summary"""
+
+    func_id = function_id
+    if not func_id:
         # Find function by name
         cursor = index.conn.execute(
             "SELECT function_id FROM functions WHERE name = ? LIMIT 1",
@@ -202,15 +171,15 @@ def update_summary(index: SemanticIndex, function_name: str, summary: str, funct
         )
         row = cursor.fetchone()
         func_id = row[0] if row else None
-    
+
     if not func_id:
         return {
             "status": "error",
             "message": f"Function not found: {function_name}"
         }
-    
+
     index.update_summary(func_id, summary)
-    
+
     return {
         "status": "ok",
         "function_id": func_id,
@@ -224,13 +193,12 @@ def add_annotation(
     function_name: str,
     ann_type: str,
     text: str,
-    function_id: int = None
+    function_id: Optional[int] = None
 ) -> Dict:
-    """Add precondition or postcondition. If function_id provided, use it directly."""
-    
-    if function_id:
-        func_id = function_id
-    else:
+    """Add precondition or postcondition"""
+
+    func_id = function_id
+    if not func_id:
         # Find function by name
         cursor = index.conn.execute(
             "SELECT function_id FROM functions WHERE name = ? LIMIT 1",
@@ -238,29 +206,29 @@ def add_annotation(
         )
         row = cursor.fetchone()
         func_id = row[0] if row else None
-    
+
     if not func_id:
         return {
             "status": "error",
             "message": f"Function not found: {function_name}"
         }
-    
+
     table = "preconditions" if ann_type == "precondition" else "postconditions"
-    
+
     # Get next sequence number
     cursor = index.conn.execute(
         f"SELECT COALESCE(MAX(sequence_order), -1) + 1 FROM {table} WHERE function_id = ?",
         (func_id,)
     )
     seq = cursor.fetchone()[0]
-    
+
     # Insert
     index.conn.execute(
         f"INSERT INTO {table} (function_id, condition_text, sequence_order) VALUES (?, ?, ?)",
         (func_id, text, seq)
     )
     index.conn.commit()
-    
+
     return {
         "status": "ok",
         "function": function_name,
@@ -272,12 +240,12 @@ def add_annotation(
 def get_status(index: SemanticIndex) -> Dict:
     """Get summarization progress"""
     stats = index.get_stats()
-    
+
     total = stats["total_functions"]
     summarized = stats["summarized_functions"]
     remaining = total - summarized
     progress = (summarized / total * 100) if total > 0 else 0
-    
+
     return {
         "total_functions": total,
         "summarized": summarized,
@@ -288,94 +256,126 @@ def get_status(index: SemanticIndex) -> Dict:
     }
 
 
-def get_ready_batch(index: SemanticIndex, max_batch: int = 50) -> Dict[str, Any]:
+def get_next_batch(index: SemanticIndex, max_batch: int = 50) -> Dict[str, Any]:
     """
-    Find ALL functions ready to summarize (callees all summarized).
-    Returns a batch that can be processed in parallel.
+    Get batch of functions ready for parallel summarization.
+    Returns functions whose callees are all summarized.
     """
-    
-    # Get all unsummarized functions
+    # Find functions that need summaries but whose callees are all done
     cursor = index.conn.execute("""
-        SELECT function_id, name, file, start_line, end_line 
-        FROM functions 
-        WHERE summary IS NULL OR summary = ''
-    """)
-    unsummarized = {row[0]: {
-        "function_id": row[0],
-        "name": row[1],
-        "file": row[2],
-        "start_line": row[3],
-        "end_line": row[4]
-    } for row in cursor}
-    
-    if not unsummarized:
-        return {"status": "complete", "message": "All functions summarized", "batch": []}
-    
-    # For each unsummarized function, check if all callees are summarized
-    ready = []
-    for func_id, func_info in unsummarized.items():
-        callees = index.get_callees(func_id)
-        
-        # Check if all callees are summarized (or not in our DB)
-        all_callees_ready = True
-        for callee in callees:
-            callee_id = callee.get("function_id")
-            if callee_id in unsummarized:
-                # Callee exists but not summarized yet
-                all_callees_ready = False
-                break
-        
-        if all_callees_ready:
-            ready.append(func_info)
-            if len(ready) >= max_batch:
-                break
-    
-    if not ready:
-        # This shouldn't happen in a DAG, but handle circular deps
-        return {
-            "status": "error", 
-            "message": "No functions ready - possible circular dependencies",
-            "batch": []
-        }
-    
+        SELECT f.function_id, f.name, f.file
+        FROM functions f
+        WHERE f.summary = ''
+        AND NOT EXISTS (
+            SELECT 1 FROM call_edges ce
+            JOIN functions callee ON ce.callee_id = callee.function_id
+            WHERE ce.caller_id = f.function_id
+            AND callee.summary = ''
+        )
+        LIMIT ?
+    """, (max_batch,))
+
+    batch = [
+        {"function_id": row[0], "name": row[1], "file": row[2]}
+        for row in cursor
+    ]
+
+    if not batch:
+        # Check if all done or stuck
+        cursor = index.conn.execute(
+            "SELECT COUNT(*) FROM functions WHERE summary = ''"
+        )
+        remaining = cursor.fetchone()[0]
+
+        if remaining == 0:
+            return {"status": "complete", "message": "All functions summarized"}
+        else:
+            return {
+                "status": "blocked",
+                "message": f"{remaining} functions remaining but have unsummarized callees",
+                "remaining": remaining
+            }
+
+    # Get total remaining count
+    cursor = index.conn.execute(
+        "SELECT COUNT(*) FROM functions WHERE summary = ''"
+    )
+    total_remaining = cursor.fetchone()[0]
+
     return {
         "status": "ok",
-        "batch_size": len(ready),
-        "total_remaining": len(unsummarized),
-        "batch": ready
+        "batch": batch,
+        "batch_size": len(batch),
+        "total_remaining": total_remaining
     }
 
 
-def get_function_context(index: SemanticIndex, func_id: int) -> Dict[str, Any]:
-    """Get full context for a single function (for parallel processing)."""
-    func = index.get_function_info(func_id)
+def get_function_context(index: SemanticIndex, function_id: int) -> Dict[str, Any]:
+    """
+    Get full context for a specific function by ID.
+    Returns source code and callee summaries for summarization.
+    """
+    func = index.get_function_info(function_id)
     if not func:
-        return {"status": "error", "message": f"Function {func_id} not found"}
-    
-    callees = index.get_callees(func_id)
-    
-    # Get source code
+        return {"status": "error", "message": f"Function not found: {function_id}"}
+
+    # Check if already summarized
+    if func["summary"].strip():
+        return {"status": "already_summarized", "function": func["name"]}
+
+    # Get callees
+    callees = index.get_callees(function_id)
+
+    # Get source code using query_repo
     source_code = query_repo.query_function(
         func["name"],
         func["file"] if func["file"] != "unknown" else None
     )
+
     if not source_code:
         source_code = "Function code not found."
-    
-    # Get callee context
+
+    # Get pre/postconditions
+    cursor = index.conn.execute(
+        """SELECT condition_text FROM preconditions
+           WHERE function_id = ? ORDER BY sequence_order""",
+        (function_id,)
+    )
+    preconditions = [row[0] for row in cursor]
+
+    cursor = index.conn.execute(
+        """SELECT condition_text FROM postconditions
+           WHERE function_id = ? ORDER BY sequence_order""",
+        (function_id,)
+    )
+    postconditions = [row[0] for row in cursor]
+
+    # Get callee summaries with nested context
     callees_with_context = []
     for c in callees:
-        callee_info = build_callee_tree(index, c, depth=1, max_depth=3)
+        callee_info = {
+            "function": c["function"],
+            "file": c["file"],
+            "summary": c["summary"]
+        }
+        sub_callees = index.get_callees(c["function_id"])
+        if sub_callees:
+            callee_info["calls"] = [
+                {"function": sc["function"], "summary": sc["summary"]}
+                for sc in sub_callees[:3]
+            ]
         callees_with_context.append(callee_info)
-    
+
     return {
         "status": "needs_summary",
-        "function_id": func_id,
+        "function_id": function_id,
         "function": func["name"],
         "file": func["file"],
         "start_line": func["start_line"],
         "end_line": func["end_line"],
         "source_code": source_code,
+        "preconditions": preconditions,
+        "postconditions": postconditions,
         "callees": callees_with_context
     }
 
@@ -392,32 +392,30 @@ def main():
     # next
     subparsers.add_parser("next", help="Get next function to summarize (WITH SOURCE CODE!)")
     
-    # next-batch
-    batch_parser = subparsers.add_parser("next-batch", help="Get batch of functions ready to summarize in parallel")
-    batch_parser.add_argument("--max", type=int, default=50, help="Maximum batch size")
-    
-    # context
-    context_parser = subparsers.add_parser("context", help="Get full context for a function by ID")
-    context_parser.add_argument("--function-id", type=int, required=True, help="Function ID")
-    
-    # update
-    
     # update
     update_parser = subparsers.add_parser("update", help="Update function summary")
     update_parser.add_argument("--function", required=True, help="Function name")
-    update_parser.add_argument("--function-id", type=int, help="Function ID (optional, more precise than name)")
     update_parser.add_argument("--summary", required=True, help="Summary text")
-    
+    update_parser.add_argument("--function-id", type=int, help="Function ID (optional, faster lookup)")
+
     # annotate
     ann_parser = subparsers.add_parser("annotate", help="Add annotation")
     ann_parser.add_argument("--function", required=True, help="Function name")
-    ann_parser.add_argument("--function-id", type=int, help="Function ID (optional, more precise than name)")
     ann_parser.add_argument("--type", required=True, choices=["precondition", "postcondition"])
     ann_parser.add_argument("--text", required=True, help="Condition text")
+    ann_parser.add_argument("--function-id", type=int, help="Function ID (optional, faster lookup)")
     
     # status
     subparsers.add_parser("status", help="Show summarization progress")
-    
+
+    # next-batch (for parallel processing)
+    batch_parser = subparsers.add_parser("next-batch", help="Get batch of functions ready for parallel summarization")
+    batch_parser.add_argument("--max", type=int, default=50, help="Maximum batch size")
+
+    # context (get context for specific function by ID)
+    context_parser = subparsers.add_parser("context", help="Get context for a specific function by ID")
+    context_parser.add_argument("--function-id", type=int, required=True, help="Function ID")
+
     args = parser.parse_args()
     
     if not args.command:
@@ -425,7 +423,7 @@ def main():
         return
     
     # Initialize query_repo if needed (for source code retrieval)
-    if args.command in ("next", "next-batch", "context") and args.project:
+    if args.command == "next" and args.project:
         query_repo.init(args.project)
     
     index = SemanticIndex(args.db)
@@ -434,19 +432,11 @@ def main():
         result = get_next_target(index)
         print(json.dumps(result, indent=2))
     
-    elif args.command == "next-batch":
-        result = get_ready_batch(index, args.max)
-        print(json.dumps(result, indent=2))
-    
-    elif args.command == "context":
-        result = get_function_context(index, args.function_id)
-        print(json.dumps(result, indent=2))
-    
     elif args.command == "update":
         func_id = getattr(args, 'function_id', None)
         result = update_summary(index, args.function, args.summary, func_id)
         print(json.dumps(result, indent=2))
-    
+
     elif args.command == "annotate":
         func_id = getattr(args, 'function_id', None)
         result = add_annotation(index, args.function, args.type, args.text, func_id)
@@ -454,6 +444,14 @@ def main():
     
     elif args.command == "status":
         result = get_status(index)
+        print(json.dumps(result, indent=2))
+
+    elif args.command == "next-batch":
+        result = get_next_batch(index, args.max)
+        print(json.dumps(result, indent=2))
+
+    elif args.command == "context":
+        result = get_function_context(index, args.function_id)
         print(json.dumps(result, indent=2))
 
 

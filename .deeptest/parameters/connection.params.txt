@@ -1,0 +1,7 @@
+component = Connection
+source = .\src\core\connection.c
+header = .\src\core\connection.h
+harness = .\src\core\unittest\ConnectionTest.cpp
+build = .\scripts\build.ps1
+test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
+coverage_result = .\artifacts\coverage\msquiccoverage.xml

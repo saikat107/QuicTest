@@ -1,0 +1,7 @@
+component = StreamSend
+source = .\src\core\stream_send.c
+header = .\src\core\stream.h
+harness = .\src\core\unittest\StreamSendTest.cpp
+build = .\scripts\build.ps1
+test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
+coverage_result = .\artifacts\coverage\msquiccoverage.xml

@@ -1,0 +1,7 @@
+component = VersionNeg
+source = .\src\core\version_neg.c
+header = .\src\core\version_neg.h
+harness = .\src\core\unittest\VersionNegExtTest.cpp
+build = .\scripts\build.ps1
+test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
+coverage_result = .\artifacts\coverage\msquiccoverage.xml

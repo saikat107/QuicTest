@@ -1,0 +1,7 @@
+component = Send
+source = .\src\core\send.c
+header = .\src\core\send.h
+harness = .\src\core\unittest\SendTest.cpp
+build = .\scripts\build.ps1
+test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
+coverage_result = .\artifacts\coverage\msquiccoverage.xml

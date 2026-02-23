@@ -1,0 +1,7 @@
+component = Settings
+source = .\src\core\settings.c
+header = .\src\core\settings.h
+harness = .\src\core\unittest\SettingsTest.cpp
+build = .\scripts\build.ps1
+test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
+coverage_result = .\artifacts\coverage\msquiccoverage.xml
