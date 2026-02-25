@@ -5,6 +5,10 @@
 
 --*/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct QUIC_PARTITIONED_HASHTABLE QUIC_PARTITIONED_HASHTABLE;
 
 typedef struct QUIC_REMOTE_HASH_ENTRY {
@@ -200,3 +204,7 @@ QuicLookupMoveLocalConnectionIDs(
     _In_ QUIC_LOOKUP* LookupDest,
     _In_ QUIC_CONNECTION* Connection
     );
+
+#ifdef __cplusplus
+} // extern "C"
+#endif

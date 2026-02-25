@@ -5,6 +5,10 @@
 
 --*/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //
 // Represents the Listener specific state.
 //
@@ -295,3 +299,7 @@ BOOLEAN
 QuicListenerDrainOperations(
     _In_ QUIC_LISTENER* Listener
     );
+
+#ifdef __cplusplus
+} // extern "C"
+#endif

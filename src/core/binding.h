@@ -5,6 +5,10 @@
 
 --*/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct QUIC_PARTITIONED_HASHTABLE QUIC_PARTITIONED_HASHTABLE;
 typedef struct QUIC_STATELESS_CONTEXT QUIC_STATELESS_CONTEXT;
 
@@ -546,3 +550,7 @@ QuicRetryTokenDecrypt(
     CxPlatDispatchLockRelease(&Partition->StatelessRetryKeysLock);
     return QUIC_SUCCEEDED(Status);
 }
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
