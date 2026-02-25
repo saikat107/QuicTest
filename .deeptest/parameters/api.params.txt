@@ -1,7 +1,1 @@
-component = Api
-source = .\src\core\api.c
-header = .\src\core\api.h
-harness = .\src\core\unittest\ApiTest.cpp
-build = .\scripts\build.ps1
-test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
-coverage_result = .\artifacts\coverage\msquiccoverage.xml
+copilot --autopilot --yolo --max-autopilot-continues 100 --agent DeepTest -p "component = Api \n source = .\\src\\core\\api.c \n header = .\\src\\core\\api.h \n harness = .\\src\\core\\unittest\\ApiTest.cpp \n build = .\\scripts\\build.ps1 \n test = .\\scripts\\test.ps1 -Filter *DeepTest_Api* -CodeCoverage \n coverage_result = .\\artifacts\\coverage\\msquiccoverage.xml"

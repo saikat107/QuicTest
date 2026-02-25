@@ -1,7 +1,1 @@
-component = Lookup
-source = .\src\core\lookup.c
-header = .\src\core\lookup.h
-harness = .\src\core\unittest\LookupTest.cpp
-build = .\scripts\build.ps1
-test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
-coverage_result = .\artifacts\coverage\msquiccoverage.xml
+copilot --autopilot --yolo --max-autopilot-continues 100 --agent DeepTest -p "component = Lookup \n source = .\\src\\core\\lookup.c \n header = .\\src\\core\\lookup.h \n harness = .\\src\\core\\unittest\\LookupTest.cpp \n build = .\\scripts\\build.ps1 \n test = .\\scripts\\test.ps1 -Filter *DeepTest_Lookup* -CodeCoverage \n coverage_result = .\\artifacts\\coverage\\msquiccoverage.xml"

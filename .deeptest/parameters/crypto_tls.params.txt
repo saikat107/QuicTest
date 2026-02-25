@@ -1,7 +1,1 @@
-component = CryptoTls
-source = .\src\core\crypto_tls.c
-header = .\src\core\crypto.h
-harness = .\src\core\unittest\CryptoTlsTest.cpp
-build = .\scripts\build.ps1
-test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
-coverage_result = .\artifacts\coverage\msquiccoverage.xml
+copilot --autopilot --yolo --max-autopilot-continues 100 --agent DeepTest -p "component = CryptoTls \n source = .\\src\\core\\crypto_tls.c \n header = .\\src\\core\\crypto.h \n harness = .\\src\\core\\unittest\\CryptoTlsTest.cpp \n build = .\\scripts\\build.ps1 \n test = .\\scripts\\test.ps1 -Filter *DeepTest_CryptoTls* -CodeCoverage \n coverage_result = .\\artifacts\\coverage\\msquiccoverage.xml"

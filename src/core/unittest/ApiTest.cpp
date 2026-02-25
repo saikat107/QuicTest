@@ -27,7 +27,7 @@ extern "C" void QuicTestPopulateApiTable(QUIC_API_TABLE* Api);
 // Test fixture that populates the MsQuic API table once before all tests in
 // each test case and clears it afterwards.
 //
-class DeepTestApi : public ::testing::Test {
+class DeepTest_Api : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
         QuicTestPopulateApiTable(&MsQuicTable);
@@ -69,7 +69,7 @@ DummyStreamCallback(
 // Helpers.
 //
 static const QUIC_REGISTRATION_CONFIG TestRegConfig = {
-    "DeepTestApi",
+    "DeepTest_Api",
     QUIC_EXECUTION_PROFILE_LOW_LATENCY
 };
 
@@ -102,7 +102,7 @@ static const QUIC_BUFFER TestAlpn = { sizeof(TestAlpnRaw), (uint8_t*)TestAlpnRaw
 // How: Open a real registration, then call ConnectionOpen with NULL Handler.
 // Assertions: Status must equal QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionOpen_NullHandler)
+TEST_F(DeepTest_Api, DeepTest_ConnectionOpen_NullHandler)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -121,7 +121,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionOpen_NullHandler)
 // How: Open a real registration, then call ConnectionOpen with NULL NewConnection.
 // Assertions: Status must equal QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionOpen_NullOutputPointer)
+TEST_F(DeepTest_Api, DeepTest_ConnectionOpen_NullOutputPointer)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -138,7 +138,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionOpen_NullOutputPointer)
 // How: Open a registration, call ConnectionOpen, then close both.
 // Assertions: Status is SUCCESS, Connection is non-NULL.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionOpen_Success)
+TEST_F(DeepTest_Api, DeepTest_ConnectionOpen_Success)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -162,7 +162,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionOpen_Success)
 // How: Call ConnectionClose(nullptr).
 // Assertions: No crash.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionClose_NullHandle)
+TEST_F(DeepTest_Api, DeepTest_ConnectionClose_NullHandle)
 {
     MsQuic->ConnectionClose(nullptr);
 }
@@ -172,7 +172,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionClose_NullHandle)
 // How: Construct a QUIC_HANDLE with Type=LISTENER.
 // Assertions: No crash.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionClose_InvalidHandleType)
+TEST_F(DeepTest_Api, DeepTest_ConnectionClose_InvalidHandleType)
 {
     QUIC_HANDLE FakeHandle;
     FakeHandle.Type = QUIC_HANDLE_TYPE_LISTENER;
@@ -184,7 +184,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionClose_InvalidHandleType)
 // How: Open Reg → Open Conn → Close Conn → Close Reg.
 // Assertions: No crash, clean lifecycle.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionClose_ValidConnection)
+TEST_F(DeepTest_Api, DeepTest_ConnectionClose_ValidConnection)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -207,7 +207,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionClose_ValidConnection)
 // How: Call ConnectionShutdown(nullptr, 0, 0).
 // Assertions: No crash.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionShutdown_NullHandle)
+TEST_F(DeepTest_Api, DeepTest_ConnectionShutdown_NullHandle)
 {
     MsQuic->ConnectionShutdown(nullptr, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
 }
@@ -217,7 +217,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionShutdown_NullHandle)
 // How: Create a fake QUIC_HANDLE with Type=LISTENER.
 // Assertions: No crash.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionShutdown_InvalidHandleType)
+TEST_F(DeepTest_Api, DeepTest_ConnectionShutdown_InvalidHandleType)
 {
     QUIC_HANDLE FakeHandle;
     FakeHandle.Type = QUIC_HANDLE_TYPE_LISTENER;
@@ -230,7 +230,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionShutdown_InvalidHandleType)
 // How: Open Reg → Open Conn → Shutdown → Close Conn → Close Reg.
 // Assertions: No crash, clean lifecycle.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionShutdown_ValidConnection)
+TEST_F(DeepTest_Api, DeepTest_ConnectionShutdown_ValidConnection)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -250,7 +250,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionShutdown_ValidConnection)
 // How: Open Reg → Open Conn → Shutdown(SILENT, 42) → Close.
 // Assertions: No crash.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionShutdown_SilentFlag)
+TEST_F(DeepTest_Api, DeepTest_ConnectionShutdown_SilentFlag)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -275,7 +275,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionShutdown_SilentFlag)
 // How: Open Reg → Open Conn → Start(conn, NULL config, ...).
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionStart_NullConfigHandle)
+TEST_F(DeepTest_Api, DeepTest_ConnectionStart_NullConfigHandle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -298,7 +298,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionStart_NullConfigHandle)
 // How: Use a fake handle with Type=REGISTRATION as the ConfigHandle.
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionStart_InvalidConfigType)
+TEST_F(DeepTest_Api, DeepTest_ConnectionStart_InvalidConfigType)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -322,7 +322,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionStart_InvalidConfigType)
 // How: Pass port 0.
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionStart_ZeroServerPort)
+TEST_F(DeepTest_Api, DeepTest_ConnectionStart_ZeroServerPort)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -349,7 +349,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionStart_ZeroServerPort)
 // How: Pass Family = 0xFF.
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionStart_InvalidFamily)
+TEST_F(DeepTest_Api, DeepTest_ConnectionStart_InvalidFamily)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -377,7 +377,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionStart_InvalidFamily)
 // How: Pass a fake handle with Type=LISTENER.
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionStart_InvalidConnectionHandle)
+TEST_F(DeepTest_Api, DeepTest_ConnectionStart_InvalidConnectionHandle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -402,7 +402,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionStart_InvalidConnectionHandle)
 // How: Client connection with NULL ServerName.
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionStart_NullServerNameNoRemoteAddr)
+TEST_F(DeepTest_Api, DeepTest_ConnectionStart_NullServerNameNoRemoteAddr)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -436,7 +436,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionStart_NullServerNameNoRemoteAddr)
 // How: Open configuration but don't load credentials.
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionStart_NoSecurityConfig)
+TEST_F(DeepTest_Api, DeepTest_ConnectionStart_NoSecurityConfig)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -463,7 +463,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionStart_NoSecurityConfig)
 // How: Full setup with credentials loaded.
 // Assertions: Status is QUIC_STATUS_PENDING.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionStart_SuccessReturnsPending)
+TEST_F(DeepTest_Api, DeepTest_ConnectionStart_SuccessReturnsPending)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -497,7 +497,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionStart_SuccessReturnsPending)
 // How: Start once (success), then start again.
 // Assertions: Second start returns QUIC_STATUS_INVALID_STATE.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionStart_AlreadyStarted)
+TEST_F(DeepTest_Api, DeepTest_ConnectionStart_AlreadyStarted)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -540,7 +540,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionStart_AlreadyStarted)
 // How: Use QUIC_ADDRESS_FAMILY_INET.
 // Assertions: Status is QUIC_STATUS_PENDING.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionStart_FamilyIPv4)
+TEST_F(DeepTest_Api, DeepTest_ConnectionStart_FamilyIPv4)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -574,7 +574,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionStart_FamilyIPv4)
 // How: Use QUIC_ADDRESS_FAMILY_INET6.
 // Assertions: Status is QUIC_STATUS_PENDING.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionStart_FamilyIPv6)
+TEST_F(DeepTest_Api, DeepTest_ConnectionStart_FamilyIPv6)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -613,7 +613,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionStart_FamilyIPv6)
 // How: Open Reg → Open Conn → SetConfiguration(conn, NULL).
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionSetConfig_NullConfigHandle)
+TEST_F(DeepTest_Api, DeepTest_ConnectionSetConfig_NullConfigHandle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -635,7 +635,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionSetConfig_NullConfigHandle)
 // How: Use a fake handle with Type=REGISTRATION.
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionSetConfig_InvalidConfigType)
+TEST_F(DeepTest_Api, DeepTest_ConnectionSetConfig_InvalidConfigType)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -660,7 +660,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionSetConfig_InvalidConfigType)
 // How: Use a fake handle with Type=LISTENER.
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionSetConfig_InvalidConnectionHandle)
+TEST_F(DeepTest_Api, DeepTest_ConnectionSetConfig_InvalidConnectionHandle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -685,7 +685,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionSetConfig_InvalidConnectionHandle)
 // How: Open a client connection, call SetConfiguration.
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionSetConfig_ClientConnectionRejects)
+TEST_F(DeepTest_Api, DeepTest_ConnectionSetConfig_ClientConnectionRejects)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -722,7 +722,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionSetConfig_ClientConnectionRejects)
 // How: Call with DataLength = QUIC_MAX_RESUMPTION_APP_DATA_LENGTH + 1.
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_ExcessiveDataLength)
+TEST_F(DeepTest_Api, DeepTest_SendResumptionTicket_ExcessiveDataLength)
 {
     QUIC_STATUS Status = MsQuic->ConnectionSendResumptionTicket(
         nullptr, QUIC_SEND_RESUMPTION_FLAG_NONE,
@@ -736,7 +736,7 @@ TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_ExcessiveDataLength)
 // How: Call with DataLength=10 and ResumptionData=NULL.
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_NullDataWithNonZeroLength)
+TEST_F(DeepTest_Api, DeepTest_SendResumptionTicket_NullDataWithNonZeroLength)
 {
     QUIC_STATUS Status = MsQuic->ConnectionSendResumptionTicket(
         nullptr, QUIC_SEND_RESUMPTION_FLAG_NONE, 10, nullptr);
@@ -749,7 +749,7 @@ TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_NullDataWithNonZeroLength)
 // How: Pass Flags > QUIC_SEND_RESUMPTION_FLAG_FINAL.
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_InvalidFlags)
+TEST_F(DeepTest_Api, DeepTest_SendResumptionTicket_InvalidFlags)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -774,7 +774,7 @@ TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_InvalidFlags)
 // How: Pass a fake handle with Type=LISTENER.
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_InvalidHandle)
+TEST_F(DeepTest_Api, DeepTest_SendResumptionTicket_InvalidHandle)
 {
     QUIC_HANDLE FakeHandle;
     FakeHandle.Type = QUIC_HANDLE_TYPE_LISTENER;
@@ -789,7 +789,7 @@ TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_InvalidHandle)
 // How: Open a client connection, call the API.
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_ClientRejects)
+TEST_F(DeepTest_Api, DeepTest_SendResumptionTicket_ClientRejects)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -814,7 +814,7 @@ TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_ClientRejects)
 // Scenario: StreamOpen with NULL NewStream returns INVALID_PARAMETER.
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_StreamOpen_NullNewStream)
+TEST_F(DeepTest_Api, DeepTest_StreamOpen_NullNewStream)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -835,7 +835,7 @@ TEST_F(DeepTestApi, DeepTest_StreamOpen_NullNewStream)
 // Scenario: StreamOpen with NULL Handler returns INVALID_PARAMETER.
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_StreamOpen_NullHandler)
+TEST_F(DeepTest_Api, DeepTest_StreamOpen_NullHandler)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -857,7 +857,7 @@ TEST_F(DeepTestApi, DeepTest_StreamOpen_NullHandler)
 // Scenario: StreamOpen with invalid handle type returns INVALID_PARAMETER.
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_StreamOpen_InvalidHandleType)
+TEST_F(DeepTest_Api, DeepTest_StreamOpen_InvalidHandleType)
 {
     QUIC_HANDLE FakeHandle;
     FakeHandle.Type = QUIC_HANDLE_TYPE_LISTENER;
@@ -872,7 +872,7 @@ TEST_F(DeepTestApi, DeepTest_StreamOpen_InvalidHandleType)
 // Scenario: StreamOpen succeeds and returns a non-NULL stream handle.
 // Assertions: Status is SUCCESS, Stream is non-NULL.
 //
-TEST_F(DeepTestApi, DeepTest_StreamOpen_Success)
+TEST_F(DeepTest_Api, DeepTest_StreamOpen_Success)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -897,7 +897,7 @@ TEST_F(DeepTestApi, DeepTest_StreamOpen_Success)
 // Scenario: StreamOpen with UNIDIRECTIONAL flag succeeds.
 // Assertions: Status is SUCCESS, Stream is non-NULL.
 //
-TEST_F(DeepTestApi, DeepTest_StreamOpen_SuccessUnidirectional)
+TEST_F(DeepTest_Api, DeepTest_StreamOpen_SuccessUnidirectional)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -922,19 +922,19 @@ TEST_F(DeepTestApi, DeepTest_StreamOpen_SuccessUnidirectional)
 // MsQuicStreamClose tests
 // =====================================================================
 
-TEST_F(DeepTestApi, DeepTest_StreamClose_NullHandle)
+TEST_F(DeepTest_Api, DeepTest_StreamClose_NullHandle)
 {
     MsQuic->StreamClose(nullptr);
 }
 
-TEST_F(DeepTestApi, DeepTest_StreamClose_InvalidHandleType)
+TEST_F(DeepTest_Api, DeepTest_StreamClose_InvalidHandleType)
 {
     QUIC_HANDLE FakeHandle;
     FakeHandle.Type = QUIC_HANDLE_TYPE_REGISTRATION;
     MsQuic->StreamClose((HQUIC)&FakeHandle);
 }
 
-TEST_F(DeepTestApi, DeepTest_StreamClose_ValidStream)
+TEST_F(DeepTest_Api, DeepTest_StreamClose_ValidStream)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -957,13 +957,13 @@ TEST_F(DeepTestApi, DeepTest_StreamClose_ValidStream)
 // MsQuicStreamStart tests
 // =====================================================================
 
-TEST_F(DeepTestApi, DeepTest_StreamStart_NullHandle)
+TEST_F(DeepTest_Api, DeepTest_StreamStart_NullHandle)
 {
     QUIC_STATUS Status = MsQuic->StreamStart(nullptr, QUIC_STREAM_START_FLAG_NONE);
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_StreamStart_InvalidHandleType)
+TEST_F(DeepTest_Api, DeepTest_StreamStart_InvalidHandleType)
 {
     QUIC_HANDLE FakeHandle;
     FakeHandle.Type = QUIC_HANDLE_TYPE_REGISTRATION;
@@ -972,7 +972,7 @@ TEST_F(DeepTestApi, DeepTest_StreamStart_InvalidHandleType)
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_StreamStart_SuccessReturnsPending)
+TEST_F(DeepTest_Api, DeepTest_StreamStart_SuccessReturnsPending)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -998,14 +998,14 @@ TEST_F(DeepTestApi, DeepTest_StreamStart_SuccessReturnsPending)
 // MsQuicStreamShutdown tests
 // =====================================================================
 
-TEST_F(DeepTestApi, DeepTest_StreamShutdown_NullHandle)
+TEST_F(DeepTest_Api, DeepTest_StreamShutdown_NullHandle)
 {
     QUIC_STATUS Status = MsQuic->StreamShutdown(
         nullptr, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_StreamShutdown_InvalidHandleType)
+TEST_F(DeepTest_Api, DeepTest_StreamShutdown_InvalidHandleType)
 {
     QUIC_HANDLE FakeHandle;
     FakeHandle.Type = QUIC_HANDLE_TYPE_REGISTRATION;
@@ -1017,7 +1017,7 @@ TEST_F(DeepTestApi, DeepTest_StreamShutdown_InvalidHandleType)
 //
 // Scenario: StreamShutdown with Flags=0 returns INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_StreamShutdown_FlagsZero)
+TEST_F(DeepTest_Api, DeepTest_StreamShutdown_FlagsZero)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1044,7 +1044,7 @@ TEST_F(DeepTestApi, DeepTest_StreamShutdown_FlagsZero)
 // Scenario: StreamShutdown with ErrorCode > QUIC_UINT62_MAX returns
 // QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_StreamShutdown_ErrorCodeTooLarge)
+TEST_F(DeepTest_Api, DeepTest_StreamShutdown_ErrorCodeTooLarge)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1070,7 +1070,7 @@ TEST_F(DeepTestApi, DeepTest_StreamShutdown_ErrorCodeTooLarge)
 //
 // Scenario: GRACEFUL + ABORT combined is invalid.
 //
-TEST_F(DeepTestApi, DeepTest_StreamShutdown_GracefulPlusAbort)
+TEST_F(DeepTest_Api, DeepTest_StreamShutdown_GracefulPlusAbort)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1099,7 +1099,7 @@ TEST_F(DeepTestApi, DeepTest_StreamShutdown_GracefulPlusAbort)
 //
 // Scenario: IMMEDIATE without both ABORT_SEND and ABORT_RECEIVE is invalid.
 //
-TEST_F(DeepTestApi, DeepTest_StreamShutdown_ImmediateWithoutBothAbort)
+TEST_F(DeepTest_Api, DeepTest_StreamShutdown_ImmediateWithoutBothAbort)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1128,7 +1128,7 @@ TEST_F(DeepTestApi, DeepTest_StreamShutdown_ImmediateWithoutBothAbort)
 //
 // Scenario: ABORT flags return PENDING.
 //
-TEST_F(DeepTestApi, DeepTest_StreamShutdown_AbortReturnsPending)
+TEST_F(DeepTest_Api, DeepTest_StreamShutdown_AbortReturnsPending)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1154,7 +1154,7 @@ TEST_F(DeepTestApi, DeepTest_StreamShutdown_AbortReturnsPending)
 //
 // Scenario: GRACEFUL flag returns PENDING.
 //
-TEST_F(DeepTestApi, DeepTest_StreamShutdown_GracefulReturnsPending)
+TEST_F(DeepTest_Api, DeepTest_StreamShutdown_GracefulReturnsPending)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1180,7 +1180,7 @@ TEST_F(DeepTestApi, DeepTest_StreamShutdown_GracefulReturnsPending)
 //
 // Scenario: IMMEDIATE | ABORT_SEND | ABORT_RECEIVE is valid, returns PENDING.
 //
-TEST_F(DeepTestApi, DeepTest_StreamShutdown_ImmediateWithBothAbort)
+TEST_F(DeepTest_Api, DeepTest_StreamShutdown_ImmediateWithBothAbort)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1211,7 +1211,7 @@ TEST_F(DeepTestApi, DeepTest_StreamShutdown_ImmediateWithBothAbort)
 // MsQuicStreamSend tests
 // =====================================================================
 
-TEST_F(DeepTestApi, DeepTest_StreamSend_NullHandle)
+TEST_F(DeepTest_Api, DeepTest_StreamSend_NullHandle)
 {
     QUIC_BUFFER Buffer = { 4, (uint8_t*)"test" };
     QUIC_STATUS Status = MsQuic->StreamSend(
@@ -1219,7 +1219,7 @@ TEST_F(DeepTestApi, DeepTest_StreamSend_NullHandle)
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_StreamSend_InvalidHandleType)
+TEST_F(DeepTest_Api, DeepTest_StreamSend_InvalidHandleType)
 {
     QUIC_HANDLE FakeHandle;
     FakeHandle.Type = QUIC_HANDLE_TYPE_REGISTRATION;
@@ -1229,7 +1229,7 @@ TEST_F(DeepTestApi, DeepTest_StreamSend_InvalidHandleType)
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_StreamSend_NullBuffersNonZeroCount)
+TEST_F(DeepTest_Api, DeepTest_StreamSend_NullBuffersNonZeroCount)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1256,13 +1256,13 @@ TEST_F(DeepTestApi, DeepTest_StreamSend_NullBuffersNonZeroCount)
 // MsQuicStreamReceiveSetEnabled tests
 // =====================================================================
 
-TEST_F(DeepTestApi, DeepTest_StreamRecvEnabled_NullHandle)
+TEST_F(DeepTest_Api, DeepTest_StreamRecvEnabled_NullHandle)
 {
     QUIC_STATUS Status = MsQuic->StreamReceiveSetEnabled(nullptr, TRUE);
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_StreamRecvEnabled_InvalidHandleType)
+TEST_F(DeepTest_Api, DeepTest_StreamRecvEnabled_InvalidHandleType)
 {
     QUIC_HANDLE FakeHandle;
     FakeHandle.Type = QUIC_HANDLE_TYPE_REGISTRATION;
@@ -1271,7 +1271,7 @@ TEST_F(DeepTestApi, DeepTest_StreamRecvEnabled_InvalidHandleType)
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_StreamRecvEnabled_ValidStreamReturnsPending)
+TEST_F(DeepTest_Api, DeepTest_StreamRecvEnabled_ValidStreamReturnsPending)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1297,12 +1297,12 @@ TEST_F(DeepTestApi, DeepTest_StreamRecvEnabled_ValidStreamReturnsPending)
 // MsQuicStreamReceiveComplete tests
 // =====================================================================
 
-TEST_F(DeepTestApi, DeepTest_StreamRecvComplete_NullHandle)
+TEST_F(DeepTest_Api, DeepTest_StreamRecvComplete_NullHandle)
 {
     MsQuic->StreamReceiveComplete(nullptr, 0);
 }
 
-TEST_F(DeepTestApi, DeepTest_StreamRecvComplete_InvalidHandleType)
+TEST_F(DeepTest_Api, DeepTest_StreamRecvComplete_InvalidHandleType)
 {
     QUIC_HANDLE FakeHandle;
     FakeHandle.Type = QUIC_HANDLE_TYPE_REGISTRATION;
@@ -1313,7 +1313,7 @@ TEST_F(DeepTestApi, DeepTest_StreamRecvComplete_InvalidHandleType)
 // MsQuicStreamProvideReceiveBuffers tests
 // =====================================================================
 
-TEST_F(DeepTestApi, DeepTest_StreamProvideRecvBuffers_NullHandle)
+TEST_F(DeepTest_Api, DeepTest_StreamProvideRecvBuffers_NullHandle)
 {
     uint8_t Buf[1024];
     QUIC_BUFFER Buffer = { sizeof(Buf), Buf };
@@ -1321,7 +1321,7 @@ TEST_F(DeepTestApi, DeepTest_StreamProvideRecvBuffers_NullHandle)
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_StreamProvideRecvBuffers_InvalidHandleType)
+TEST_F(DeepTest_Api, DeepTest_StreamProvideRecvBuffers_InvalidHandleType)
 {
     QUIC_HANDLE FakeHandle;
     FakeHandle.Type = QUIC_HANDLE_TYPE_REGISTRATION;
@@ -1332,7 +1332,7 @@ TEST_F(DeepTestApi, DeepTest_StreamProvideRecvBuffers_InvalidHandleType)
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_StreamProvideRecvBuffers_NullBuffers)
+TEST_F(DeepTest_Api, DeepTest_StreamProvideRecvBuffers_NullBuffers)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1354,7 +1354,7 @@ TEST_F(DeepTestApi, DeepTest_StreamProvideRecvBuffers_NullBuffers)
     MsQuic->RegistrationClose(Registration);
 }
 
-TEST_F(DeepTestApi, DeepTest_StreamProvideRecvBuffers_ZeroBufferCount)
+TEST_F(DeepTest_Api, DeepTest_StreamProvideRecvBuffers_ZeroBufferCount)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1378,7 +1378,7 @@ TEST_F(DeepTestApi, DeepTest_StreamProvideRecvBuffers_ZeroBufferCount)
     MsQuic->RegistrationClose(Registration);
 }
 
-TEST_F(DeepTestApi, DeepTest_StreamProvideRecvBuffers_ZeroLengthBuffer)
+TEST_F(DeepTest_Api, DeepTest_StreamProvideRecvBuffers_ZeroLengthBuffer)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1402,7 +1402,7 @@ TEST_F(DeepTestApi, DeepTest_StreamProvideRecvBuffers_ZeroLengthBuffer)
     MsQuic->RegistrationClose(Registration);
 }
 
-TEST_F(DeepTestApi, DeepTest_StreamProvideRecvBuffers_NotAppOwned)
+TEST_F(DeepTest_Api, DeepTest_StreamProvideRecvBuffers_NotAppOwned)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1430,7 +1430,7 @@ TEST_F(DeepTestApi, DeepTest_StreamProvideRecvBuffers_NotAppOwned)
 // MsQuicSetParam tests
 // =====================================================================
 
-TEST_F(DeepTestApi, DeepTest_SetParam_GlobalParamWithHandle)
+TEST_F(DeepTest_Api, DeepTest_SetParam_GlobalParamWithHandle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1444,7 +1444,7 @@ TEST_F(DeepTestApi, DeepTest_SetParam_GlobalParamWithHandle)
     MsQuic->RegistrationClose(Registration);
 }
 
-TEST_F(DeepTestApi, DeepTest_SetParam_NonGlobalParamWithNullHandle)
+TEST_F(DeepTest_Api, DeepTest_SetParam_NonGlobalParamWithNullHandle)
 {
     uint32_t Value = 0;
     QUIC_STATUS Status = MsQuic->SetParam(
@@ -1452,7 +1452,7 @@ TEST_F(DeepTestApi, DeepTest_SetParam_NonGlobalParamWithNullHandle)
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_SetParam_InvalidHandleType)
+TEST_F(DeepTest_Api, DeepTest_SetParam_InvalidHandleType)
 {
     QUIC_HANDLE FakeHandle;
     FakeHandle.Type = (QUIC_HANDLE_TYPE)99;
@@ -1463,7 +1463,7 @@ TEST_F(DeepTestApi, DeepTest_SetParam_InvalidHandleType)
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_SetParam_GlobalParamSuccess)
+TEST_F(DeepTest_Api, DeepTest_SetParam_GlobalParamSuccess)
 {
     uint16_t Value = 50;
     QUIC_STATUS Status = MsQuic->SetParam(
@@ -1472,7 +1472,7 @@ TEST_F(DeepTestApi, DeepTest_SetParam_GlobalParamSuccess)
     ASSERT_EQ(Status, QUIC_STATUS_SUCCESS);
 }
 
-TEST_F(DeepTestApi, DeepTest_SetParam_RegistrationHandleInline)
+TEST_F(DeepTest_Api, DeepTest_SetParam_RegistrationHandleInline)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1490,7 +1490,7 @@ TEST_F(DeepTestApi, DeepTest_SetParam_RegistrationHandleInline)
 // MsQuicGetParam tests
 // =====================================================================
 
-TEST_F(DeepTestApi, DeepTest_GetParam_GlobalParamWithHandle)
+TEST_F(DeepTest_Api, DeepTest_GetParam_GlobalParamWithHandle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1505,7 +1505,7 @@ TEST_F(DeepTestApi, DeepTest_GetParam_GlobalParamWithHandle)
     MsQuic->RegistrationClose(Registration);
 }
 
-TEST_F(DeepTestApi, DeepTest_GetParam_NonGlobalParamWithNullHandle)
+TEST_F(DeepTest_Api, DeepTest_GetParam_NonGlobalParamWithNullHandle)
 {
     uint32_t BufferLength = 0;
     QUIC_STATUS Status = MsQuic->GetParam(
@@ -1513,14 +1513,14 @@ TEST_F(DeepTestApi, DeepTest_GetParam_NonGlobalParamWithNullHandle)
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_GetParam_NullBufferLength)
+TEST_F(DeepTest_Api, DeepTest_GetParam_NullBufferLength)
 {
     QUIC_STATUS Status = MsQuic->GetParam(
         nullptr, QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT, nullptr, nullptr);
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_GetParam_GlobalParamSuccess)
+TEST_F(DeepTest_Api, DeepTest_GetParam_GlobalParamSuccess)
 {
     uint32_t BufferLength = sizeof(uint16_t);
     uint16_t Value = 0;
@@ -1531,7 +1531,7 @@ TEST_F(DeepTestApi, DeepTest_GetParam_GlobalParamSuccess)
     ASSERT_EQ(BufferLength, sizeof(uint16_t));
 }
 
-TEST_F(DeepTestApi, DeepTest_GetParam_InvalidHandleType)
+TEST_F(DeepTest_Api, DeepTest_GetParam_InvalidHandleType)
 {
     QUIC_HANDLE FakeHandle;
     FakeHandle.Type = (QUIC_HANDLE_TYPE)99;
@@ -1542,7 +1542,7 @@ TEST_F(DeepTestApi, DeepTest_GetParam_InvalidHandleType)
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_GetParam_RegistrationHandleInline)
+TEST_F(DeepTest_Api, DeepTest_GetParam_RegistrationHandleInline)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1557,7 +1557,7 @@ TEST_F(DeepTestApi, DeepTest_GetParam_RegistrationHandleInline)
     MsQuic->RegistrationClose(Registration);
 }
 
-TEST_F(DeepTestApi, DeepTest_GetParam_ConfigurationHandleInline)
+TEST_F(DeepTest_Api, DeepTest_GetParam_ConfigurationHandleInline)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1581,7 +1581,7 @@ TEST_F(DeepTestApi, DeepTest_GetParam_ConfigurationHandleInline)
 // MsQuicDatagramSend tests
 // =====================================================================
 
-TEST_F(DeepTestApi, DeepTest_DatagramSend_NullHandle)
+TEST_F(DeepTest_Api, DeepTest_DatagramSend_NullHandle)
 {
     QUIC_BUFFER Buffer = { 4, (uint8_t*)"test" };
     QUIC_STATUS Status = MsQuic->DatagramSend(
@@ -1589,7 +1589,7 @@ TEST_F(DeepTestApi, DeepTest_DatagramSend_NullHandle)
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_DatagramSend_InvalidHandleType)
+TEST_F(DeepTest_Api, DeepTest_DatagramSend_InvalidHandleType)
 {
     QUIC_HANDLE FakeHandle;
     FakeHandle.Type = QUIC_HANDLE_TYPE_STREAM;
@@ -1599,7 +1599,7 @@ TEST_F(DeepTestApi, DeepTest_DatagramSend_InvalidHandleType)
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_DatagramSend_NullBuffers)
+TEST_F(DeepTest_Api, DeepTest_DatagramSend_NullBuffers)
 {
     QUIC_HANDLE FakeHandle;
     FakeHandle.Type = QUIC_HANDLE_TYPE_CONNECTION_CLIENT;
@@ -1608,7 +1608,7 @@ TEST_F(DeepTestApi, DeepTest_DatagramSend_NullBuffers)
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_DatagramSend_ZeroBufferCount)
+TEST_F(DeepTest_Api, DeepTest_DatagramSend_ZeroBufferCount)
 {
     QUIC_HANDLE FakeHandle;
     FakeHandle.Type = QUIC_HANDLE_TYPE_CONNECTION_CLIENT;
@@ -1618,7 +1618,7 @@ TEST_F(DeepTestApi, DeepTest_DatagramSend_ZeroBufferCount)
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_DatagramSend_TotalLengthExceedsMax)
+TEST_F(DeepTest_Api, DeepTest_DatagramSend_TotalLengthExceedsMax)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1647,14 +1647,14 @@ TEST_F(DeepTestApi, DeepTest_DatagramSend_TotalLengthExceedsMax)
 // MsQuicConnectionResumptionTicketValidationComplete tests
 // =====================================================================
 
-TEST_F(DeepTestApi, DeepTest_ResumeTicketValidation_NullHandle)
+TEST_F(DeepTest_Api, DeepTest_ResumeTicketValidation_NullHandle)
 {
     QUIC_STATUS Status = MsQuic->ConnectionResumptionTicketValidationComplete(
         nullptr, TRUE);
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_ResumeTicketValidation_InvalidHandleType)
+TEST_F(DeepTest_Api, DeepTest_ResumeTicketValidation_InvalidHandleType)
 {
     QUIC_HANDLE FakeHandle;
     FakeHandle.Type = QUIC_HANDLE_TYPE_LISTENER;
@@ -1663,7 +1663,7 @@ TEST_F(DeepTestApi, DeepTest_ResumeTicketValidation_InvalidHandleType)
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_ResumeTicketValidation_ClientConnectionRejects)
+TEST_F(DeepTest_Api, DeepTest_ResumeTicketValidation_ClientConnectionRejects)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1684,14 +1684,14 @@ TEST_F(DeepTestApi, DeepTest_ResumeTicketValidation_ClientConnectionRejects)
 // MsQuicConnectionCertificateValidationComplete tests
 // =====================================================================
 
-TEST_F(DeepTestApi, DeepTest_CertValidation_NullHandle)
+TEST_F(DeepTest_Api, DeepTest_CertValidation_NullHandle)
 {
     QUIC_STATUS Status = MsQuic->ConnectionCertificateValidationComplete(
         nullptr, TRUE, QUIC_TLS_ALERT_CODE_SUCCESS);
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_CertValidation_InvalidHandleType)
+TEST_F(DeepTest_Api, DeepTest_CertValidation_InvalidHandleType)
 {
     QUIC_HANDLE FakeHandle;
     FakeHandle.Type = QUIC_HANDLE_TYPE_LISTENER;
@@ -1700,7 +1700,7 @@ TEST_F(DeepTestApi, DeepTest_CertValidation_InvalidHandleType)
     ASSERT_EQ(Status, QUIC_STATUS_INVALID_PARAMETER);
 }
 
-TEST_F(DeepTestApi, DeepTest_CertValidation_InvalidTlsAlert)
+TEST_F(DeepTest_Api, DeepTest_CertValidation_InvalidTlsAlert)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1717,7 +1717,7 @@ TEST_F(DeepTestApi, DeepTest_CertValidation_InvalidTlsAlert)
     MsQuic->RegistrationClose(Registration);
 }
 
-TEST_F(DeepTestApi, DeepTest_CertValidation_SuccessReturnsPending)
+TEST_F(DeepTest_Api, DeepTest_CertValidation_SuccessReturnsPending)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1739,7 +1739,7 @@ TEST_F(DeepTestApi, DeepTest_CertValidation_SuccessReturnsPending)
 // Full lifecycle integration tests
 // =====================================================================
 
-TEST_F(DeepTestApi, DeepTest_Lifecycle_ConnectionStreamFullLifecycle)
+TEST_F(DeepTest_Api, DeepTest_Lifecycle_ConnectionStreamFullLifecycle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1764,7 +1764,7 @@ TEST_F(DeepTestApi, DeepTest_Lifecycle_ConnectionStreamFullLifecycle)
     MsQuic->RegistrationClose(Registration);
 }
 
-TEST_F(DeepTestApi, DeepTest_Lifecycle_MultipleStreams)
+TEST_F(DeepTest_Api, DeepTest_Lifecycle_MultipleStreams)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1792,7 +1792,7 @@ TEST_F(DeepTestApi, DeepTest_Lifecycle_MultipleStreams)
     MsQuic->RegistrationClose(Registration);
 }
 
-TEST_F(DeepTestApi, DeepTest_Lifecycle_SetGetGlobalParamRoundTrip)
+TEST_F(DeepTest_Api, DeepTest_Lifecycle_SetGetGlobalParamRoundTrip)
 {
     uint16_t OrigValue = 0;
     uint32_t Len = sizeof(OrigValue);
@@ -1815,7 +1815,7 @@ TEST_F(DeepTestApi, DeepTest_Lifecycle_SetGetGlobalParamRoundTrip)
         sizeof(OrigValue), &OrigValue));
 }
 
-TEST_F(DeepTestApi, DeepTest_Lifecycle_StartThenShutdown)
+TEST_F(DeepTest_Api, DeepTest_Lifecycle_StartThenShutdown)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1853,7 +1853,7 @@ TEST_F(DeepTestApi, DeepTest_Lifecycle_StartThenShutdown)
 // How: Open a registration, call ConnectionOpenInPartition with UINT16_MAX.
 // Assertions: Status must equal QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionOpenInPartition_InvalidPartition)
+TEST_F(DeepTest_Api, DeepTest_ConnectionOpenInPartition_InvalidPartition)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1875,7 +1875,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionOpenInPartition_InvalidPartition)
 // How: Open a registration, call ConnectionOpenInPartition with partition 0.
 // Assertions: Status is SUCCESS, Connection is non-NULL.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionOpenInPartition_SuccessPartitionZero)
+TEST_F(DeepTest_Api, DeepTest_ConnectionOpenInPartition_SuccessPartitionZero)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1904,7 +1904,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionOpenInPartition_SuccessPartitionZero)
 // How: Open stream, pass flags=0x8000 (QUIC_STREAM_SHUTDOWN_SILENT) only.
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_StreamShutdown_SilentOnly)
+TEST_F(DeepTest_Api, DeepTest_StreamShutdown_SilentOnly)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1933,7 +1933,7 @@ TEST_F(DeepTestApi, DeepTest_StreamShutdown_SilentOnly)
 // How: Open stream, pass GRACEFUL|IMMEDIATE flags.
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_StreamShutdown_GracefulPlusImmediate)
+TEST_F(DeepTest_Api, DeepTest_StreamShutdown_GracefulPlusImmediate)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1966,7 +1966,7 @@ TEST_F(DeepTestApi, DeepTest_StreamShutdown_GracefulPlusImmediate)
 // How: Open connection with a non-null context, verify open succeeds.
 // Assertions: Status is SUCCESS, Connection is non-NULL.
 //
-TEST_F(DeepTestApi, DeepTest_Lifecycle_ConnectionOpenWithContext)
+TEST_F(DeepTest_Api, DeepTest_Lifecycle_ConnectionOpenWithContext)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -1990,7 +1990,7 @@ TEST_F(DeepTestApi, DeepTest_Lifecycle_ConnectionOpenWithContext)
 // How: Open stream with a non-null context, verify open succeeds.
 // Assertions: Status is SUCCESS, Stream is non-NULL.
 //
-TEST_F(DeepTestApi, DeepTest_Lifecycle_StreamOpenWithContext)
+TEST_F(DeepTest_Api, DeepTest_Lifecycle_StreamOpenWithContext)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2040,7 +2040,7 @@ DummyListenerCallback(
 // How: Open Reg->Conn->Stream, call ConnectionShutdown passing the stream handle.
 // Assertions: No crash; the shutdown is queued successfully.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionShutdown_ViaStreamHandle)
+TEST_F(DeepTest_Api, DeepTest_ConnectionShutdown_ViaStreamHandle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2066,7 +2066,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionShutdown_ViaStreamHandle)
 // How: Open Reg->Configuration->Conn->Stream, call ConnectionStart passing stream handle.
 // Assertions: Status is QUIC_STATUS_PENDING (start queued through stream's connection).
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionStart_ViaStreamHandle)
+TEST_F(DeepTest_Api, DeepTest_ConnectionStart_ViaStreamHandle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2106,7 +2106,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionStart_ViaStreamHandle)
 // How: Open Reg->Conn->Stream1, call StreamOpen passing Stream1 handle.
 // Assertions: Second stream is created successfully.
 //
-TEST_F(DeepTestApi, DeepTest_StreamOpen_ViaStreamHandle)
+TEST_F(DeepTest_Api, DeepTest_StreamOpen_ViaStreamHandle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2141,7 +2141,7 @@ TEST_F(DeepTestApi, DeepTest_StreamOpen_ViaStreamHandle)
 // How: Build a string longer than QUIC_MAX_SNI_LENGTH and pass as ServerName.
 // Assertions: Status is QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionStart_ServerNameTooLong)
+TEST_F(DeepTest_Api, DeepTest_ConnectionStart_ServerNameTooLong)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2183,7 +2183,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionStart_ServerNameTooLong)
 // How: Open Reg->Conn->Stream->StreamStart->StreamSend with a small buffer.
 // Assertions: StreamSend returns QUIC_STATUS_PENDING.
 //
-TEST_F(DeepTestApi, DeepTest_StreamSend_ValidBufferReturnsPending)
+TEST_F(DeepTest_Api, DeepTest_StreamSend_ValidBufferReturnsPending)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2214,7 +2214,7 @@ TEST_F(DeepTestApi, DeepTest_StreamSend_ValidBufferReturnsPending)
 // How: Start stream, send with empty buffers and QUIC_SEND_FLAG_FIN.
 // Assertions: Status is QUIC_STATUS_PENDING.
 //
-TEST_F(DeepTestApi, DeepTest_StreamSend_FinFlag)
+TEST_F(DeepTest_Api, DeepTest_StreamSend_FinFlag)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2242,7 +2242,7 @@ TEST_F(DeepTestApi, DeepTest_StreamSend_FinFlag)
 // How: Start stream, send with QUIC_SEND_FLAG_PRIORITY_WORK.
 // Assertions: Status is QUIC_STATUS_PENDING.
 //
-TEST_F(DeepTestApi, DeepTest_StreamSend_PriorityWorkFlag)
+TEST_F(DeepTest_Api, DeepTest_StreamSend_PriorityWorkFlag)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2279,7 +2279,7 @@ TEST_F(DeepTestApi, DeepTest_StreamSend_PriorityWorkFlag)
 // How: Open Reg->Conn->Stream->Start->StreamReceiveSetEnabled(TRUE).
 // Assertions: Status is QUIC_STATUS_PENDING.
 //
-TEST_F(DeepTestApi, DeepTest_StreamRecvEnabled_StartedStreamEnable)
+TEST_F(DeepTest_Api, DeepTest_StreamRecvEnabled_StartedStreamEnable)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2308,7 +2308,7 @@ TEST_F(DeepTestApi, DeepTest_StreamRecvEnabled_StartedStreamEnable)
 // How: Open Reg->Conn->Stream->Start->StreamReceiveSetEnabled(FALSE).
 // Assertions: Status is QUIC_STATUS_PENDING.
 //
-TEST_F(DeepTestApi, DeepTest_StreamRecvEnabled_StartedStreamDisable)
+TEST_F(DeepTest_Api, DeepTest_StreamRecvEnabled_StartedStreamDisable)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2342,7 +2342,7 @@ TEST_F(DeepTestApi, DeepTest_StreamRecvEnabled_StartedStreamDisable)
 // How: Open Reg->Conn->Stream->Start->StreamReceiveComplete(0).
 // Assertions: No crash.
 //
-TEST_F(DeepTestApi, DeepTest_StreamRecvComplete_StartedStreamZeroLength)
+TEST_F(DeepTest_Api, DeepTest_StreamRecvComplete_StartedStreamZeroLength)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2379,7 +2379,7 @@ TEST_F(DeepTestApi, DeepTest_StreamRecvComplete_StartedStreamZeroLength)
 // How: Open Reg->Conn, call SetParam with a connection-level parameter.
 // Assertions: SetParam returns a valid status (not crash).
 //
-TEST_F(DeepTestApi, DeepTest_SetParam_ConnectionHandle)
+TEST_F(DeepTest_Api, DeepTest_SetParam_ConnectionHandle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2403,7 +2403,7 @@ TEST_F(DeepTestApi, DeepTest_SetParam_ConnectionHandle)
 // How: Open Reg->Conn, call GetParam for share UDP binding.
 // Assertions: GetParam returns SUCCESS with a valid buffer length.
 //
-TEST_F(DeepTestApi, DeepTest_GetParam_ConnectionHandle)
+TEST_F(DeepTest_Api, DeepTest_GetParam_ConnectionHandle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2429,7 +2429,7 @@ TEST_F(DeepTestApi, DeepTest_GetParam_ConnectionHandle)
 // How: Open Reg->Conn->Stream, call SetParam with a stream param.
 // Assertions: SetParam returns a valid status.
 //
-TEST_F(DeepTestApi, DeepTest_SetParam_StreamHandle)
+TEST_F(DeepTest_Api, DeepTest_SetParam_StreamHandle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2458,7 +2458,7 @@ TEST_F(DeepTestApi, DeepTest_SetParam_StreamHandle)
 // How: Open Reg->Conn->Stream, call GetParam for stream ID.
 // Assertions: GetParam returns a valid status (not crash).
 //
-TEST_F(DeepTestApi, DeepTest_GetParam_StreamHandle)
+TEST_F(DeepTest_Api, DeepTest_GetParam_StreamHandle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2488,7 +2488,7 @@ TEST_F(DeepTestApi, DeepTest_GetParam_StreamHandle)
 // How: Open Reg->Conn, call SetParam with QUIC_PARAM_HIGH_PRIORITY ORed in.
 // Assertions: SetParam returns a valid status.
 //
-TEST_F(DeepTestApi, DeepTest_SetParam_HighPriorityConnection)
+TEST_F(DeepTest_Api, DeepTest_SetParam_HighPriorityConnection)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2514,7 +2514,7 @@ TEST_F(DeepTestApi, DeepTest_SetParam_HighPriorityConnection)
 // How: Open Reg->Listener, call GetParam on the listener.
 // Assertions: GetParam returns QUIC_STATUS_BUFFER_TOO_SMALL with zero length.
 //
-TEST_F(DeepTestApi, DeepTest_GetParam_ListenerHandle)
+TEST_F(DeepTest_Api, DeepTest_GetParam_ListenerHandle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2537,7 +2537,7 @@ TEST_F(DeepTestApi, DeepTest_GetParam_ListenerHandle)
 // How: Open Reg->Listener, call SetParam with a listener-level parameter.
 // Assertions: SetParam returns a valid status.
 //
-TEST_F(DeepTestApi, DeepTest_SetParam_ListenerHandle)
+TEST_F(DeepTest_Api, DeepTest_SetParam_ListenerHandle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2565,7 +2565,7 @@ TEST_F(DeepTestApi, DeepTest_SetParam_ListenerHandle)
 // How: Open Reg->Config->Conn->Start->DatagramSend with a small buffer.
 // Assertions: Status is QUIC_STATUS_PENDING.
 //
-TEST_F(DeepTestApi, DeepTest_DatagramSend_ValidBufferReturnsPending)
+TEST_F(DeepTest_Api, DeepTest_DatagramSend_ValidBufferReturnsPending)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2608,7 +2608,7 @@ TEST_F(DeepTestApi, DeepTest_DatagramSend_ValidBufferReturnsPending)
 // How: Open Reg->Config->Conn->Stream, pass stream handle to SetConfiguration.
 // Assertions: Status is QUIC_STATUS_INVALID_STATE (client connection).
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionSetConfig_ViaStreamHandle)
+TEST_F(DeepTest_Api, DeepTest_ConnectionSetConfig_ViaStreamHandle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2650,7 +2650,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionSetConfig_ViaStreamHandle)
 // How: Open Reg->Conn->Stream, call SendResumptionTicket with stream handle.
 // Assertions: Status is QUIC_STATUS_INVALID_STATE (client).
 //
-TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_ViaStreamHandle)
+TEST_F(DeepTest_Api, DeepTest_SendResumptionTicket_ViaStreamHandle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2682,7 +2682,7 @@ TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_ViaStreamHandle)
 // How: Open Reg->Conn->Stream, call with stream handle.
 // Assertions: Status is QUIC_STATUS_INVALID_STATE (client).
 //
-TEST_F(DeepTestApi, DeepTest_ResumeTicketValidation_ViaStreamHandle)
+TEST_F(DeepTest_Api, DeepTest_ResumeTicketValidation_ViaStreamHandle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2714,7 +2714,7 @@ TEST_F(DeepTestApi, DeepTest_ResumeTicketValidation_ViaStreamHandle)
 // How: Open Reg->Conn->Stream, call with stream handle.
 // Assertions: Status is QUIC_STATUS_PENDING (queued successfully).
 //
-TEST_F(DeepTestApi, DeepTest_CertValidation_ViaStreamHandle)
+TEST_F(DeepTest_Api, DeepTest_CertValidation_ViaStreamHandle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2746,7 +2746,7 @@ TEST_F(DeepTestApi, DeepTest_CertValidation_ViaStreamHandle)
 // How: Open Reg->Conn->Stream->Start->Shutdown(ABORT_SEND, 42).
 // Assertions: Status is QUIC_STATUS_PENDING.
 //
-TEST_F(DeepTestApi, DeepTest_StreamShutdown_AbortSendOnly)
+TEST_F(DeepTest_Api, DeepTest_StreamShutdown_AbortSendOnly)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2775,7 +2775,7 @@ TEST_F(DeepTestApi, DeepTest_StreamShutdown_AbortSendOnly)
 // How: Open Reg->Conn->Stream->Start->Shutdown(ABORT_RECEIVE, 0).
 // Assertions: Status is QUIC_STATUS_PENDING.
 //
-TEST_F(DeepTestApi, DeepTest_StreamShutdown_AbortReceiveOnly)
+TEST_F(DeepTest_Api, DeepTest_StreamShutdown_AbortReceiveOnly)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2805,7 +2805,7 @@ TEST_F(DeepTestApi, DeepTest_StreamShutdown_AbortReceiveOnly)
 // How: Open started stream, pass all three flags.
 // Assertions: Status is QUIC_STATUS_PENDING.
 //
-TEST_F(DeepTestApi, DeepTest_StreamShutdown_ImmediateWithBothAbortStarted)
+TEST_F(DeepTest_Api, DeepTest_StreamShutdown_ImmediateWithBothAbortStarted)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2843,7 +2843,7 @@ TEST_F(DeepTestApi, DeepTest_StreamShutdown_ImmediateWithBothAbortStarted)
 // How: Open Reg->Conn->Stream->StreamStart(PRIORITY_WORK).
 // Assertions: Status is QUIC_STATUS_PENDING.
 //
-TEST_F(DeepTestApi, DeepTest_StreamStart_PriorityWorkFlag)
+TEST_F(DeepTest_Api, DeepTest_StreamStart_PriorityWorkFlag)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2876,7 +2876,7 @@ TEST_F(DeepTestApi, DeepTest_StreamStart_PriorityWorkFlag)
 // How: Open Reg->Config->Conn->Start->Close.
 // Assertions: No crash; connection is cleaned up.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionClose_StartedConnection)
+TEST_F(DeepTest_Api, DeepTest_ConnectionClose_StartedConnection)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2913,7 +2913,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionClose_StartedConnection)
 // How: Open Reg->Config->Conn->Start->Shutdown(none, errorcode).
 // Assertions: No crash.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionShutdown_StartedNonSilent)
+TEST_F(DeepTest_Api, DeepTest_ConnectionShutdown_StartedNonSilent)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -2957,7 +2957,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionShutdown_StartedNonSilent)
 // whose lengths sum to > UINT32_MAX.
 // Assertions: Status equals QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_StreamSend_TotalLengthOverflow)
+TEST_F(DeepTest_Api, DeepTest_StreamSend_TotalLengthOverflow)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3003,7 +3003,7 @@ TEST_F(DeepTestApi, DeepTest_StreamSend_TotalLengthOverflow)
 // the shutdown (setting ClosedLocally), then attempt StreamOpen.
 // Assertions: StreamOpen returns QUIC_STATUS_INVALID_STATE.
 //
-TEST_F(DeepTestApi, DeepTest_StreamOpen_ClosedLocallyConnection)
+TEST_F(DeepTest_Api, DeepTest_StreamOpen_ClosedLocallyConnection)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3057,7 +3057,7 @@ TEST_F(DeepTestApi, DeepTest_StreamOpen_ClosedLocallyConnection)
 // How: Start connection, start stream, wait, start stream again.
 // Assertions: Second StreamStart returns QUIC_STATUS_INVALID_STATE.
 //
-TEST_F(DeepTestApi, DeepTest_StreamStart_AlreadyStarted)
+TEST_F(DeepTest_Api, DeepTest_StreamStart_AlreadyStarted)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3109,7 +3109,7 @@ TEST_F(DeepTestApi, DeepTest_StreamStart_AlreadyStarted)
 // How: Start a connection, call GetParam with HIGH_PRIORITY flag.
 // Assertions: Returns a valid status.
 //
-TEST_F(DeepTestApi, DeepTest_GetParam_HighPriorityStartedConnection)
+TEST_F(DeepTest_Api, DeepTest_GetParam_HighPriorityStartedConnection)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3158,7 +3158,7 @@ TEST_F(DeepTestApi, DeepTest_GetParam_HighPriorityStartedConnection)
 // // How: Start a connection, call SetParam with HIGH_PRIORITY flag.
 // // Assertions: Returns a valid status.
 // //
-// TEST_F(DeepTestApi, DeepTest_SetParam_HighPriorityStartedConnection)
+// TEST_F(DeepTest_Api, DeepTest_SetParam_HighPriorityStartedConnection)
 // {
 //     HQUIC Registration = nullptr;
 //     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3206,7 +3206,7 @@ TEST_F(DeepTestApi, DeepTest_GetParam_HighPriorityStartedConnection)
 // How: Open Reg->Conn->Stream->Start, call ProvideReceiveBuffers.
 // Assertions: Returns QUIC_STATUS_INVALID_STATE.
 //
-TEST_F(DeepTestApi, DeepTest_StreamProvideRecvBuffers_NotAppOwnedStarted)
+TEST_F(DeepTest_Api, DeepTest_StreamProvideRecvBuffers_NotAppOwnedStarted)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3245,7 +3245,7 @@ TEST_F(DeepTestApi, DeepTest_StreamProvideRecvBuffers_NotAppOwnedStarted)
 // How: Open Reg->Listener, call GetParam with CIBIR_ID param.
 // Assertions: Returns a valid status.
 //
-TEST_F(DeepTestApi, DeepTest_GetParam_ListenerCibirId)
+TEST_F(DeepTest_Api, DeepTest_GetParam_ListenerCibirId)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3273,7 +3273,7 @@ TEST_F(DeepTestApi, DeepTest_GetParam_ListenerCibirId)
 // How: Open Reg->Listener, call SetParam with CIBIR_ID param.
 // Assertions: Returns a valid status.
 //
-TEST_F(DeepTestApi, DeepTest_SetParam_ListenerCibirId)
+TEST_F(DeepTest_Api, DeepTest_SetParam_ListenerCibirId)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3304,7 +3304,7 @@ TEST_F(DeepTestApi, DeepTest_SetParam_ListenerCibirId)
 // How: Start connection + stream, shut down send, wait, then StreamSend.
 // Assertions: StreamSend returns INVALID_STATE or ABORTED.
 //
-TEST_F(DeepTestApi, DeepTest_StreamSend_AfterSendShutdown)
+TEST_F(DeepTest_Api, DeepTest_StreamSend_AfterSendShutdown)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3365,7 +3365,7 @@ TEST_F(DeepTestApi, DeepTest_StreamSend_AfterSendShutdown)
 // How: Start, shutdown, wait, start again.
 // Assertions: Second ConnectionStart returns QUIC_STATUS_INVALID_STATE.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionStart_AfterShutdown)
+TEST_F(DeepTest_Api, DeepTest_ConnectionStart_AfterShutdown)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3409,7 +3409,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionStart_AfterShutdown)
 // How: Open Reg->Conn, call with flag value exceeding FINAL.
 // Assertions: Returns QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_InvalidFlagsTooLarge)
+TEST_F(DeepTest_Api, DeepTest_SendResumptionTicket_InvalidFlagsTooLarge)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3439,7 +3439,7 @@ TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_InvalidFlagsTooLarge)
 // How: Open Reg->Conn, call with connection handle.
 // Assertions: Returns QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_ResumeTicketValidation_ConnectionHandleClient)
+TEST_F(DeepTest_Api, DeepTest_ResumeTicketValidation_ConnectionHandleClient)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3466,7 +3466,7 @@ TEST_F(DeepTestApi, DeepTest_ResumeTicketValidation_ConnectionHandleClient)
 // How: Open Reg->Config->Conn, call with connection handle.
 // Assertions: Returns QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionSetConfig_ConnectionHandleClient)
+TEST_F(DeepTest_Api, DeepTest_ConnectionSetConfig_ConnectionHandleClient)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3503,7 +3503,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionSetConfig_ConnectionHandleClient)
 // How: Open Reg->Conn, call with FINAL flag.
 // Assertions: Returns QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_ConnectionHandleClient)
+TEST_F(DeepTest_Api, DeepTest_SendResumptionTicket_ConnectionHandleClient)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3530,7 +3530,7 @@ TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_ConnectionHandleClient)
 // How: Open Reg->Conn, call with connection handle.
 // Assertions: Returns QUIC_STATUS_PENDING.
 //
-TEST_F(DeepTestApi, DeepTest_CertValidation_ConnectionHandle)
+TEST_F(DeepTest_Api, DeepTest_CertValidation_ConnectionHandle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3556,7 +3556,7 @@ TEST_F(DeepTestApi, DeepTest_CertValidation_ConnectionHandle)
 // How: Open Reg->Config, call SetParam with a configuration param.
 // Assertions: Returns a valid status.
 //
-TEST_F(DeepTestApi, DeepTest_SetParam_ConfigurationHandle)
+TEST_F(DeepTest_Api, DeepTest_SetParam_ConfigurationHandle)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3590,7 +3590,7 @@ TEST_F(DeepTestApi, DeepTest_SetParam_ConfigurationHandle)
 // How: Start a connection, call DatagramSend with valid data.
 // Assertions: Returns QUIC_STATUS_PENDING.
 //
-TEST_F(DeepTestApi, DeepTest_DatagramSend_StartedConnection)
+TEST_F(DeepTest_Api, DeepTest_DatagramSend_StartedConnection)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3638,7 +3638,7 @@ TEST_F(DeepTestApi, DeepTest_DatagramSend_StartedConnection)
 // How: Open Reg->Conn->Stream->Start, send twice immediately.
 // Assertions: Both calls return QUIC_STATUS_PENDING.
 //
-TEST_F(DeepTestApi, DeepTest_StreamSend_DoubleSendQueuesFast)
+TEST_F(DeepTest_Api, DeepTest_StreamSend_DoubleSendQueuesFast)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3694,7 +3694,7 @@ TEST_F(DeepTestApi, DeepTest_StreamSend_DoubleSendQueuesFast)
 // How: Open Reg->Conn->Stream->Start, send with 0 buffers and FIN.
 // Assertions: Returns QUIC_STATUS_PENDING.
 //
-TEST_F(DeepTestApi, DeepTest_StreamSend_ZeroBuffersWithFin)
+TEST_F(DeepTest_Api, DeepTest_StreamSend_ZeroBuffersWithFin)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3734,7 +3734,7 @@ TEST_F(DeepTestApi, DeepTest_StreamSend_ZeroBuffersWithFin)
 // How: Start connection+stream, call StreamShutdown with GRACEFUL flag.
 // Assertions: Returns QUIC_STATUS_PENDING.
 //
-TEST_F(DeepTestApi, DeepTest_StreamShutdown_GracefulStarted)
+TEST_F(DeepTest_Api, DeepTest_StreamShutdown_GracefulStarted)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3796,7 +3796,7 @@ TEST_F(DeepTestApi, DeepTest_StreamShutdown_GracefulStarted)
 // call SetParam. The inline path calls QuicLibrarySetParam directly.
 // Assertions: SetParam succeeds or returns a valid error without hanging.
 //
-TEST_F(DeepTestApi, DeepTest_SetParam_WorkerThreadInline)
+TEST_F(DeepTest_Api, DeepTest_SetParam_WorkerThreadInline)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3838,7 +3838,7 @@ TEST_F(DeepTestApi, DeepTest_SetParam_WorkerThreadInline)
 // How: Open Reg->Conn, set WorkerThreadID, call GetParam inline.
 // Assertions: GetParam succeeds (inline path).
 //
-TEST_F(DeepTestApi, DeepTest_GetParam_WorkerThreadInline)
+TEST_F(DeepTest_Api, DeepTest_GetParam_WorkerThreadInline)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3869,7 +3869,7 @@ TEST_F(DeepTestApi, DeepTest_GetParam_WorkerThreadInline)
 // How: Open Reg->Conn->Stream, set WorkerThreadID, call SetParam via stream.
 // Assertions: SetParam succeeds inline.
 //
-TEST_F(DeepTestApi, DeepTest_SetParam_StreamHandleWorkerThreadInline)
+TEST_F(DeepTest_Api, DeepTest_SetParam_StreamHandleWorkerThreadInline)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3909,7 +3909,7 @@ TEST_F(DeepTestApi, DeepTest_SetParam_StreamHandleWorkerThreadInline)
 // How: Open Reg->Conn->Stream, set WorkerThreadID, call GetParam via stream.
 // Assertions: GetParam succeeds inline.
 //
-TEST_F(DeepTestApi, DeepTest_GetParam_StreamHandleWorkerThreadInline)
+TEST_F(DeepTest_Api, DeepTest_GetParam_StreamHandleWorkerThreadInline)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3950,7 +3950,7 @@ TEST_F(DeepTestApi, DeepTest_GetParam_StreamHandleWorkerThreadInline)
 // How: Set WorkerThreadID, call SetParam with HIGH_PRIORITY flag.
 // Assertions: SetParam succeeds inline.
 //
-TEST_F(DeepTestApi, DeepTest_SetParam_HighPriorityWorkerThreadInline)
+TEST_F(DeepTest_Api, DeepTest_SetParam_HighPriorityWorkerThreadInline)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -3982,7 +3982,7 @@ TEST_F(DeepTestApi, DeepTest_SetParam_HighPriorityWorkerThreadInline)
 // How: Set WorkerThreadID, call GetParam with HIGH_PRIORITY flag.
 // Assertions: GetParam succeeds inline.
 //
-TEST_F(DeepTestApi, DeepTest_GetParam_HighPriorityWorkerThreadInline)
+TEST_F(DeepTest_Api, DeepTest_GetParam_HighPriorityWorkerThreadInline)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4019,7 +4019,7 @@ TEST_F(DeepTestApi, DeepTest_GetParam_HighPriorityWorkerThreadInline)
 // How: Open Reg->Conn, set State.ClosedRemotely=TRUE, call StreamOpen.
 // Assertions: Returns QUIC_STATUS_ABORTED.
 //
-TEST_F(DeepTestApi, DeepTest_StreamOpen_ClosedRemotely)
+TEST_F(DeepTest_Api, DeepTest_StreamOpen_ClosedRemotely)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4055,7 +4055,7 @@ TEST_F(DeepTestApi, DeepTest_StreamOpen_ClosedRemotely)
 // How: Open stream first, then set ClosedRemotely, then start.
 // Assertions: Returns QUIC_STATUS_ABORTED.
 //
-TEST_F(DeepTestApi, DeepTest_StreamStart_ClosedRemotely)
+TEST_F(DeepTest_Api, DeepTest_StreamStart_ClosedRemotely)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4090,7 +4090,7 @@ TEST_F(DeepTestApi, DeepTest_StreamStart_ClosedRemotely)
 // How: Open/start stream, then set ClosedRemotely, then send.
 // Assertions: Returns QUIC_STATUS_ABORTED.
 //
-TEST_F(DeepTestApi, DeepTest_StreamSend_ClosedRemotely)
+TEST_F(DeepTest_Api, DeepTest_StreamSend_ClosedRemotely)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4138,7 +4138,7 @@ TEST_F(DeepTestApi, DeepTest_StreamSend_ClosedRemotely)
 // How: Open/start stream, clear SendEnabled flag, then send.
 // Assertions: Returns QUIC_STATUS_INVALID_STATE.
 //
-TEST_F(DeepTestApi, DeepTest_StreamSend_SendDisabled)
+TEST_F(DeepTest_Api, DeepTest_StreamSend_SendDisabled)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4190,7 +4190,7 @@ TEST_F(DeepTestApi, DeepTest_StreamSend_SendDisabled)
 // How: Set Handle type to SERVER and TlsState.HandshakeComplete=TRUE.
 // Assertions: Returns QUIC_STATUS_INVALID_STATE.
 //
-TEST_F(DeepTestApi, DeepTest_ResumeTicketValidation_ServerHandshakeDone)
+TEST_F(DeepTest_Api, DeepTest_ResumeTicketValidation_ServerHandshakeDone)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4225,7 +4225,7 @@ TEST_F(DeepTestApi, DeepTest_ResumeTicketValidation_ServerHandshakeDone)
 // How: Server-type conn, open a config WITHOUT loading credentials.
 // Assertions: Returns QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionSetConfig_ServerNullSecurityConfig)
+TEST_F(DeepTest_Api, DeepTest_ConnectionSetConfig_ServerNullSecurityConfig)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4264,7 +4264,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionSetConfig_ServerNullSecurityConfig)
 // How: Server-type conn with Configuration field set to non-NULL.
 // Assertions: Returns QUIC_STATUS_INVALID_STATE.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionSetConfig_ServerAlreadyConfigured)
+TEST_F(DeepTest_Api, DeepTest_ConnectionSetConfig_ServerAlreadyConfigured)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4317,7 +4317,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionSetConfig_ServerAlreadyConfigured)
 // How: Open Reg->Config->Conn, set State.Started=TRUE, call ConnectionStart.
 // Assertions: Returns QUIC_STATUS_INVALID_STATE.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionStart_AlreadyStartedDirect)
+TEST_F(DeepTest_Api, DeepTest_ConnectionStart_AlreadyStartedDirect)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4363,7 +4363,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionStart_AlreadyStartedDirect)
 // How: Open Reg->Config->Conn, set State.ClosedLocally=TRUE.
 // Assertions: Returns QUIC_STATUS_INVALID_STATE.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionStart_ClosedLocallyDirect)
+TEST_F(DeepTest_Api, DeepTest_ConnectionStart_ClosedLocallyDirect)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4406,7 +4406,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionStart_ClosedLocallyDirect)
 // How: Open stream, set Started flag directly, call StreamStart.
 // Assertions: Returns QUIC_STATUS_INVALID_STATE.
 //
-TEST_F(DeepTestApi, DeepTest_StreamStart_AlreadyStartedDirect)
+TEST_F(DeepTest_Api, DeepTest_StreamStart_AlreadyStartedDirect)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4442,7 +4442,7 @@ TEST_F(DeepTestApi, DeepTest_StreamStart_AlreadyStartedDirect)
 // How: Open Reg->Conn, set ClosedLocally=TRUE, call StreamOpen.
 // Assertions: Returns QUIC_STATUS_INVALID_STATE.
 //
-TEST_F(DeepTestApi, DeepTest_StreamOpen_ClosedLocallyDirect)
+TEST_F(DeepTest_Api, DeepTest_StreamOpen_ClosedLocallyDirect)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4477,7 +4477,7 @@ TEST_F(DeepTestApi, DeepTest_StreamOpen_ClosedLocallyDirect)
 // How: Open Reg->Conn, change to SERVER, call with invalid TlsAlert.
 // Assertions: Returns QUIC_STATUS_INVALID_PARAMETER.
 //
-TEST_F(DeepTestApi, DeepTest_CertValidation_ServerInvalidTlsAlert)
+TEST_F(DeepTest_Api, DeepTest_CertValidation_ServerInvalidTlsAlert)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4516,7 +4516,7 @@ TEST_F(DeepTestApi, DeepTest_CertValidation_ServerInvalidTlsAlert)
 // How: Open Reg->Conn, change to SERVER type, call SendResumptionTicket.
 // Assertions: Returns QUIC_STATUS_INVALID_STATE.
 //
-TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_ServerNotResumeEnabled)
+TEST_F(DeepTest_Api, DeepTest_SendResumptionTicket_ServerNotResumeEnabled)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4553,7 +4553,7 @@ TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_ServerNotResumeEnabled)
 // How: Open Reg->Conn, change to SERVER, set ResumptionEnabled=TRUE.
 // Assertions: Returns QUIC_STATUS_INVALID_STATE.
 //
-TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_ServerNotConnected)
+TEST_F(DeepTest_Api, DeepTest_SendResumptionTicket_ServerNotConnected)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4588,7 +4588,7 @@ TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_ServerNotConnected)
 // How: Set server type, ResumptionEnabled, Connected, call with zero data.
 // Assertions: Returns QUIC_STATUS_INVALID_STATE.
 //
-TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_ServerNotHandshakeComplete)
+TEST_F(DeepTest_Api, DeepTest_SendResumptionTicket_ServerNotHandshakeComplete)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4624,7 +4624,7 @@ TEST_F(DeepTestApi, DeepTest_SendResumptionTicket_ServerNotHandshakeComplete)
 // How: Set Handle type to SERVER, set SessionResumed=TRUE.
 // Assertions: Returns QUIC_STATUS_INVALID_STATE.
 //
-TEST_F(DeepTestApi, DeepTest_ResumeTicketValidation_ServerSessionResumed)
+TEST_F(DeepTest_Api, DeepTest_ResumeTicketValidation_ServerSessionResumed)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4660,7 +4660,7 @@ TEST_F(DeepTestApi, DeepTest_ResumeTicketValidation_ServerSessionResumed)
 // Note: ConnectionClose IS the cleanup - do not call it again.
 // Assertions: No crash; connection is properly cleaned up.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionClose_WorkerThreadInline)
+TEST_F(DeepTest_Api, DeepTest_ConnectionClose_WorkerThreadInline)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4693,7 +4693,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionClose_WorkerThreadInline)
 // How: Open Reg->Conn, set CloseAsync=TRUE, call ConnectionClose.
 // Assertions: No crash; connection is properly cleaned up asynchronously.
 //
-TEST_F(DeepTestApi, DeepTest_ConnectionClose_CloseAsync)
+TEST_F(DeepTest_Api, DeepTest_ConnectionClose_CloseAsync)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4731,7 +4731,7 @@ TEST_F(DeepTestApi, DeepTest_ConnectionClose_CloseAsync)
 // How: Open Reg->Conn->Stream, set WorkerThreadID=current, call StreamClose.
 // Assertions: No crash; stream is properly cleaned up inline.
 //
-TEST_F(DeepTestApi, DeepTest_StreamClose_WorkerThreadInline)
+TEST_F(DeepTest_Api, DeepTest_StreamClose_WorkerThreadInline)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4773,7 +4773,7 @@ TEST_F(DeepTestApi, DeepTest_StreamClose_WorkerThreadInline)
 // call StreamShutdown with INLINE | ABORT flags.
 // Assertions: Returns QUIC_STATUS_SUCCESS (inline execution path).
 //
-TEST_F(DeepTestApi, DeepTest_StreamShutdown_InlineWorkerThread)
+TEST_F(DeepTest_Api, DeepTest_StreamShutdown_InlineWorkerThread)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4822,7 +4822,7 @@ TEST_F(DeepTestApi, DeepTest_StreamShutdown_InlineWorkerThread)
 // set WorkerThreadID=current, call StreamSend.
 // Assertions: Returns QUIC_STATUS_PENDING (send is flushed inline).
 //
-TEST_F(DeepTestApi, DeepTest_StreamSend_WorkerThreadInline)
+TEST_F(DeepTest_Api, DeepTest_StreamSend_WorkerThreadInline)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4884,7 +4884,7 @@ TEST_F(DeepTestApi, DeepTest_StreamSend_WorkerThreadInline)
 // StreamReceiveComplete with canary-bit buffer length.
 // Assertions: No crash; the overflow is detected and handled gracefully.
 //
-TEST_F(DeepTestApi, DeepTest_StreamRecvComplete_CanaryOverflow)
+TEST_F(DeepTest_Api, DeepTest_StreamRecvComplete_CanaryOverflow)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4938,7 +4938,7 @@ TEST_F(DeepTestApi, DeepTest_StreamRecvComplete_CanaryOverflow)
 // call StreamReceiveComplete with a small valid buffer length.
 // Assertions: No crash; the function exits early at line 1415.
 //
-TEST_F(DeepTestApi, DeepTest_StreamRecvComplete_ReceiveCallActive)
+TEST_F(DeepTest_Api, DeepTest_StreamRecvComplete_ReceiveCallActive)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));
@@ -4992,7 +4992,7 @@ TEST_F(DeepTestApi, DeepTest_StreamRecvComplete_ReceiveCallActive)
 // set RecvCompletionLength with canary bit, call StreamReceiveComplete.
 // Assertions: No crash; the overflow is detected but BackUpOper is not used.
 //
-TEST_F(DeepTestApi, DeepTest_StreamRecvComplete_CanaryBackUpUsed)
+TEST_F(DeepTest_Api, DeepTest_StreamRecvComplete_CanaryBackUpUsed)
 {
     HQUIC Registration = nullptr;
     TEST_QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&TestRegConfig, &Registration));

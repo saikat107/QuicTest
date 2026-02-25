@@ -1,7 +1,1 @@
-component = TimerWheel
-source = .\src\core\timer_wheel.c
-header = .\src\core\timer_wheel.h
-harness = .\src\core\unittest\TimerWheelTest.cpp
-build = .\scripts\build.ps1
-test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
-coverage_result = .\artifacts\coverage\msquiccoverage.xml
+copilot --autopilot --yolo --max-autopilot-continues 100 --agent DeepTest -p "component = TimerWheel \n source = .\\src\\core\\timer_wheel.c \n header = .\\src\\core\\timer_wheel.h \n harness = .\\src\\core\\unittest\\TimerWheelTest.cpp \n build = .\\scripts\\build.ps1 \n test = .\\scripts\\test.ps1 -Filter *DeepTest_TimerWheel* -CodeCoverage \n coverage_result = .\\artifacts\\coverage\\msquiccoverage.xml"

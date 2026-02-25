@@ -1,7 +1,1 @@
-component = ConnectionPool
-source = .\src\core\connection_pool.c
-header = .\src\core\connection.h
-harness = .\src\core\unittest\ConnectionPoolTest.cpp
-build = .\scripts\build.ps1
-test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
-coverage_result = .\artifacts\coverage\msquiccoverage.xml
+copilot --autopilot --yolo --max-autopilot-continues 100 --agent DeepTest -p "component = ConnectionPool \n source = .\\src\\core\\connection_pool.c \n header = .\\src\\core\\connection.h \n harness = .\\src\\core\\unittest\\ConnectionPoolTest.cpp \n build = .\\scripts\\build.ps1 \n test = .\\scripts\\test.ps1 -Filter *DeepTest_ConnectionPool* -CodeCoverage \n coverage_result = .\\artifacts\\coverage\\msquiccoverage.xml"

@@ -2170,7 +2170,7 @@ INSTANTIATE_TEST_SUITE_P(
 // How: Initialize a buffer, immediately call GetTotalLength.
 // Assertions: Returns 0; HasUnreadData returns FALSE.
 //
-TEST_P(WithMode, DeepTest_GetTotalLength_EmptyBuffer)
+TEST_P(WithMode, DeepTest_RecvBuffer_GetTotalLength_EmptyBuffer)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(GetParam()));
@@ -2184,7 +2184,7 @@ TEST_P(WithMode, DeepTest_GetTotalLength_EmptyBuffer)
 //      write data that falls entirely below the new BaseOffset.
 // Assertions: Second write succeeds, QuotaConsumed is 0, TotalLength unchanged.
 //
-TEST_P(WithMode, DeepTest_WriteBeforeBaseOffset)
+TEST_P(WithMode, DeepTest_RecvBuffer_WriteBeforeBaseOffset)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(GetParam()));
@@ -2221,7 +2221,7 @@ TEST_P(WithMode, DeepTest_WriteBeforeBaseOffset)
 //      but extends past it (lines 592-598 adjustment in CopyIntoChunks).
 // Assertions: Only the new bytes are written; data is correct after read.
 //
-TEST_P(WithMode, DeepTest_WritePartiallyBeforeBaseOffset)
+TEST_P(WithMode, DeepTest_RecvBuffer_WritePartiallyBeforeBaseOffset)
 {
     RecvBuffer RecvBuf;
     auto Mode = GetParam();
@@ -2261,7 +2261,7 @@ TEST_P(WithMode, DeepTest_WritePartiallyBeforeBaseOffset)
 // How: Write the exact same range twice. The second write should be a no-op after range tracking.
 // Assertions: Second write succeeds, no new data ready (same contiguous range), data intact.
 //
-TEST_P(WithMode, DeepTest_DuplicateWrite)
+TEST_P(WithMode, DeepTest_RecvBuffer_DuplicateWrite)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(GetParam()));
@@ -2287,7 +2287,7 @@ TEST_P(WithMode, DeepTest_DuplicateWrite)
 // How: Write data only at a gap offset (e.g., offset 10).
 // Assertions: HasUnreadData returns FALSE even though data is written.
 //
-TEST_P(WithMode, DeepTest_HasUnreadData_GapAtFront)
+TEST_P(WithMode, DeepTest_RecvBuffer_HasUnreadData_GapAtFront)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(GetParam()));
@@ -2306,7 +2306,7 @@ TEST_P(WithMode, DeepTest_HasUnreadData_GapAtFront)
 // How: Initialize buffer in each mode, write some data, check count.
 // Assertions: SINGLE->1, CIRCULAR->2, MULTIPLE->3.
 //
-TEST_P(WithMode, DeepTest_ReadBufferNeededCount_ByMode)
+TEST_P(WithMode, DeepTest_RecvBuffer_ReadBufferNeededCount_ByMode)
 {
     auto Mode = GetParam();
     if (Mode == QUIC_RECV_BUF_MODE_APP_OWNED) {
@@ -2335,7 +2335,7 @@ TEST_P(WithMode, DeepTest_ReadBufferNeededCount_ByMode)
 //      (advancing ReadStart), then write more data that wraps around.
 // Assertions: Read returns 2 buffers, data is correct.
 //
-TEST(DeepTest_CircularMode, WrapAroundRead)
+TEST(DeepTest_RecvBuffer_CircularMode, WrapAroundRead)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_CIRCULAR, false, DEF_TEST_BUFFER_LENGTH, DEF_TEST_BUFFER_LENGTH));
@@ -2385,7 +2385,7 @@ TEST(DeepTest_CircularMode, WrapAroundRead)
 // How: Initialize SINGLE mode with preallocated chunk, write, read, drain.
 // Assertions: Behaves identically to non-preallocated path.
 //
-TEST(DeepTest_SingleMode, PreallocatedChunkFullCycle)
+TEST(DeepTest_RecvBuffer_SingleMode, PreallocatedChunkFullCycle)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_SINGLE, true));
@@ -2416,7 +2416,7 @@ TEST(DeepTest_SingleMode, PreallocatedChunkFullCycle)
 //      more data forcing a resize while the old chunk is externally referenced.
 // Assertions: Write succeeds, old data in read buffer still valid, RetiredChunk freed on drain.
 //
-TEST(DeepTest_SingleMode, ResizeWithExternalReference)
+TEST(DeepTest_RecvBuffer_SingleMode, ResizeWithExternalReference)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_SINGLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
@@ -2470,7 +2470,7 @@ TEST(DeepTest_SingleMode, ResizeWithExternalReference)
 // How: Same as SINGLE but in CIRCULAR mode with wrap-around data.
 // Assertions: RetiredChunk set, freed on drain.
 //
-TEST(DeepTest_CircularMode, ResizeWithExternalReference)
+TEST(DeepTest_RecvBuffer_CircularMode, ResizeWithExternalReference)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_CIRCULAR, false, 8, LARGE_TEST_BUFFER_LENGTH));
@@ -2515,7 +2515,7 @@ TEST(DeepTest_CircularMode, ResizeWithExternalReference)
 //      should be moved to the front of the buffer.
 // Assertions: After partial drain, ReadStart is 0, data is readable and correct.
 //
-TEST(DeepTest_SingleMode, PartialDrainMovesData)
+TEST(DeepTest_RecvBuffer_SingleMode, PartialDrainMovesData)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_SINGLE));
@@ -2555,7 +2555,7 @@ TEST(DeepTest_SingleMode, PartialDrainMovesData)
 // How: In CIRCULAR mode, write, read, partial drain.
 // Assertions: ReadStart advances (non-zero), ReadLength is reduced.
 //
-TEST(DeepTest_CircularMode, PartialDrainWraps)
+TEST(DeepTest_RecvBuffer_CircularMode, PartialDrainWraps)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_CIRCULAR));
@@ -2593,7 +2593,7 @@ TEST(DeepTest_CircularMode, PartialDrainWraps)
 //      multiple doublings of the physical buffer.
 // Assertions: All writes succeed, data reads correctly.
 //
-TEST_P(WithMode, DeepTest_MultipleResizeDoublings)
+TEST_P(WithMode, DeepTest_RecvBuffer_MultipleResizeDoublings)
 {
     auto Mode = GetParam();
     if (Mode == QUIC_RECV_BUF_MODE_APP_OWNED) return; // No resize in app-owned
@@ -2627,7 +2627,7 @@ TEST_P(WithMode, DeepTest_MultipleResizeDoublings)
 //      new data that wraps around and forces a resize.
 // Assertions: Data is correctly copied to the new chunk (both before and after wrap point).
 //
-TEST(DeepTest_CircularMode, ResizeWithWrappedData)
+TEST(DeepTest_RecvBuffer_CircularMode, ResizeWithWrappedData)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_CIRCULAR, false, 8, LARGE_TEST_BUFFER_LENGTH));
@@ -2673,7 +2673,7 @@ TEST(DeepTest_CircularMode, ResizeWithWrappedData)
 //      then write enough to force the second chunk to resize.
 // Assertions: Data copied correctly from old non-first chunk to new chunk.
 //
-TEST(DeepTest_MultipleMode, ResizeNonFirstChunk)
+TEST(DeepTest_RecvBuffer_MultipleMode, ResizeNonFirstChunk)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
@@ -2716,7 +2716,7 @@ TEST(DeepTest_MultipleMode, ResizeNonFirstChunk)
 // How: Provide a single chunk, write+read+drain everything.
 // Assertions: Drain returns TRUE, chunk list is empty.
 //
-TEST(DeepTest_AppOwned, DrainAllChunksEmptiesList)
+TEST(DeepTest_RecvBuffer_AppOwned, DrainAllChunksEmptiesList)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_APP_OWNED, false, 0, 0));
@@ -2758,7 +2758,7 @@ TEST(DeepTest_AppOwned, DrainAllChunksEmptiesList)
 // How: Drain all chunks, then try to write.
 // Assertions: Write returns QUIC_STATUS_BUFFER_TOO_SMALL with BufferSizeNeeded set.
 //
-TEST(DeepTest_AppOwned, WriteAfterDrainAllChunks)
+TEST(DeepTest_RecvBuffer_AppOwned, WriteAfterDrainAllChunks)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_APP_OWNED, false, 0, 0));
@@ -2791,7 +2791,7 @@ TEST(DeepTest_AppOwned, WriteAfterDrainAllChunks)
 // How: Initialize with empty mode, provide chunks, verify Capacity is set.
 // Assertions: Capacity equals first chunk's AllocLength.
 //
-TEST(DeepTest_AppOwned, ProvideChunksToEmptyBuffer)
+TEST(DeepTest_RecvBuffer_AppOwned, ProvideChunksToEmptyBuffer)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_APP_OWNED, false, 0, 0));
@@ -2811,7 +2811,7 @@ TEST(DeepTest_AppOwned, ProvideChunksToEmptyBuffer)
 // How: Initialize app-owned, provide chunks, check count without writing.
 // Assertions: Returns 0 when no data written (FirstRange is NULL).
 //
-TEST(DeepTest_AppOwned, ReadBufferNeededCount_NoData)
+TEST(DeepTest_RecvBuffer_AppOwned, ReadBufferNeededCount_NoData)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_APP_OWNED, false, 0, 0));
@@ -2828,7 +2828,7 @@ TEST(DeepTest_AppOwned, ReadBufferNeededCount_NoData)
 // How: Write data at offset 5, don't write at 0.
 // Assertions: Returns 0 since first range doesn't start at 0.
 //
-TEST(DeepTest_AppOwned, ReadBufferNeededCount_GapAtFront)
+TEST(DeepTest_RecvBuffer_AppOwned, ReadBufferNeededCount_GapAtFront)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_APP_OWNED, false, 0, 0));
@@ -2850,7 +2850,7 @@ TEST(DeepTest_AppOwned, ReadBufferNeededCount_GapAtFront)
 // How: In MULTIPLE mode, read, then drain less than full read.
 // Assertions: ReadPendingLength decremented (not zeroed), first chunk stays referenced.
 //
-TEST(DeepTest_MultipleMode, PartialDrainKeepsPending)
+TEST(DeepTest_RecvBuffer_MultipleMode, PartialDrainKeepsPending)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, DEF_TEST_BUFFER_LENGTH, LARGE_TEST_BUFFER_LENGTH));
@@ -2886,7 +2886,7 @@ TEST(DeepTest_MultipleMode, PartialDrainKeepsPending)
 // How: In CIRCULAR mode with resize, drain and verify all chunks unreferenced.
 // Assertions: After drain, all chunk ExternalReference are FALSE.
 //
-TEST(DeepTest_CircularMode, DrainClearsAllExternalRefs)
+TEST(DeepTest_RecvBuffer_CircularMode, DrainClearsAllExternalRefs)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_CIRCULAR));
@@ -2919,7 +2919,7 @@ TEST(DeepTest_CircularMode, DrainClearsAllExternalRefs)
 // How: In MULTIPLE mode, do two reads without draining between them.
 // Assertions: Second read returns data after the first read's pending data.
 //
-TEST(DeepTest_MultipleMode, ConcurrentReads)
+TEST(DeepTest_RecvBuffer_MultipleMode, ConcurrentReads)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, DEF_TEST_BUFFER_LENGTH, LARGE_TEST_BUFFER_LENGTH));
@@ -2960,7 +2960,7 @@ TEST(DeepTest_MultipleMode, ConcurrentReads)
 // How: In APP_OWNED mode with 2 chunks, drain part of first chunk.
 // Assertions: Capacity is reduced, ReadStart advances.
 //
-TEST(DeepTest_AppOwned, PartialDrainReducesCapacity)
+TEST(DeepTest_RecvBuffer_AppOwned, PartialDrainReducesCapacity)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_APP_OWNED, false, 0, 0));
@@ -2999,7 +2999,7 @@ TEST(DeepTest_AppOwned, PartialDrainReducesCapacity)
 // How: In MULTIPLE mode, create 2 chunks, drain part of first.
 // Assertions: Capacity reduced because multiple chunks exist.
 //
-TEST(DeepTest_MultipleMode, DrainFirstChunkWithSecondPresent)
+TEST(DeepTest_RecvBuffer_MultipleMode, DrainFirstChunkWithSecondPresent)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
@@ -3036,7 +3036,7 @@ TEST(DeepTest_MultipleMode, DrainFirstChunkWithSecondPresent)
 // How: In MULTIPLE mode, write to 2 chunks, drain all data.
 // Assertions: After draining, exactly one chunk remains (the recycled biggest one).
 //
-TEST(DeepTest_MultipleMode, DrainFullChunksRecyclesLast)
+TEST(DeepTest_RecvBuffer_MultipleMode, DrainFullChunksRecyclesLast)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
@@ -3077,7 +3077,7 @@ TEST(DeepTest_MultipleMode, DrainFullChunksRecyclesLast)
 // How: Write data, then write more with quota exactly matching the new bytes needed.
 // Assertions: Succeeds, QuotaConsumed equals the exact new bytes.
 //
-TEST_P(WithMode, DeepTest_WriteExactQuota)
+TEST_P(WithMode, DeepTest_RecvBuffer_WriteExactQuota)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(GetParam()));
@@ -3100,7 +3100,7 @@ TEST_P(WithMode, DeepTest_WriteExactQuota)
 // How: Write with quota of 9 when 10 new bytes are needed.
 // Assertions: Returns QUIC_STATUS_BUFFER_TOO_SMALL.
 //
-TEST_P(WithMode, DeepTest_WriteInsufficientQuota)
+TEST_P(WithMode, DeepTest_RecvBuffer_WriteInsufficientQuota)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(GetParam()));
@@ -3120,7 +3120,7 @@ TEST_P(WithMode, DeepTest_WriteInsufficientQuota)
 // How: Try to write beyond virtual limit, increase it, write again.
 // Assertions: First write fails, second succeeds after increase.
 //
-TEST_P(WithMode, DeepTest_IncreaseVirtualBufferAllowsWrite)
+TEST_P(WithMode, DeepTest_RecvBuffer_IncreaseVirtualBufferAllowsWrite)
 {
     auto Mode = GetParam();
     RecvBuffer RecvBuf;
@@ -3149,7 +3149,7 @@ TEST_P(WithMode, DeepTest_IncreaseVirtualBufferAllowsWrite)
 // How: Write, read, then drain 0 bytes.
 // Assertions: ReadPendingLength becomes 0, HasUnreadData returns TRUE.
 //
-TEST_P(WithMode, DeepTest_DrainZeroLength)
+TEST_P(WithMode, DeepTest_RecvBuffer_DrainZeroLength)
 {
     auto Mode = GetParam();
     RecvBuffer RecvBuf;
@@ -3183,7 +3183,7 @@ TEST_P(WithMode, DeepTest_DrainZeroLength)
 // How: Provide 2 small chunks, write data spanning both.
 // Assertions: Data correctly written across both chunks, read returns correct data.
 //
-TEST(DeepTest_AppOwned, WriteCrossChunkBoundary)
+TEST(DeepTest_RecvBuffer_AppOwned, WriteCrossChunkBoundary)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_APP_OWNED, false, 0, 0));
@@ -3223,7 +3223,7 @@ TEST(DeepTest_AppOwned, WriteCrossChunkBoundary)
 // How: In SINGLE mode, write, read (lock chunk), resize, then ResetRead.
 // Assertions: ResetRead succeeds, but the retired chunk may cause issues on drain.
 //
-TEST(DeepTest_SingleMode, ResetReadBasicCycle)
+TEST(DeepTest_RecvBuffer_SingleMode, ResetReadBasicCycle)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_SINGLE));
@@ -3259,7 +3259,7 @@ TEST(DeepTest_SingleMode, ResetReadBasicCycle)
 // How: Write data that fills exactly up to VirtualBufferLength.
 // Assertions: Write succeeds, TotalLength equals VirtualBufferLength.
 //
-TEST_P(WithMode, DeepTest_WriteExactVirtualLimit)
+TEST_P(WithMode, DeepTest_RecvBuffer_WriteExactVirtualLimit)
 {
     auto Mode = GetParam();
     RecvBuffer RecvBuf;
@@ -3280,7 +3280,7 @@ TEST_P(WithMode, DeepTest_WriteExactVirtualLimit)
 //      data that triggers resize but the written span doesn't wrap around.
 // Assertions: Data is correctly copied to new buffer.
 //
-TEST(DeepTest_CircularMode, ResizeNoWrapCopy)
+TEST(DeepTest_RecvBuffer_CircularMode, ResizeNoWrapCopy)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_CIRCULAR, false, 8, LARGE_TEST_BUFFER_LENGTH));
@@ -3321,7 +3321,7 @@ TEST(DeepTest_CircularMode, ResizeNoWrapCopy)
 // How: Write at offsets 20, 40 creating gaps, then fill gap at 0, then fill 10-20.
 // Assertions: NewDataReady only when front gap is filled. Data reads correctly.
 //
-TEST_P(WithMode, DeepTest_MultiGapFillSequence)
+TEST_P(WithMode, DeepTest_RecvBuffer_MultiGapFillSequence)
 {
     auto Mode = GetParam();
     RecvBuffer RecvBuf;
@@ -3373,7 +3373,7 @@ TEST_P(WithMode, DeepTest_MultiGapFillSequence)
 // How: Write data, read exactly all of it.
 // Assertions: HasUnreadData returns FALSE when ReadPendingLength equals contiguous data.
 //
-TEST_P(WithMode, DeepTest_HasUnreadData_AfterFullRead)
+TEST_P(WithMode, DeepTest_RecvBuffer_HasUnreadData_AfterFullRead)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(GetParam()));
@@ -3399,7 +3399,7 @@ TEST_P(WithMode, DeepTest_HasUnreadData_AfterFullRead)
 // Assertions: Count iterates through all chunks matching readable data.
 // Coverage targets: lines 793-817 in recv_buffer.c
 //
-TEST(DeepTest_AppOwned, ReadBufferNeededCount_MultiChunk)
+TEST(DeepTest_RecvBuffer_AppOwned, ReadBufferNeededCount_MultiChunk)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_APP_OWNED, false, 0, 0));
@@ -3447,7 +3447,7 @@ TEST(DeepTest_AppOwned, ReadBufferNeededCount_MultiChunk)
 // Assertions: Data is correctly written to the third chunk and reads back correctly.
 // Coverage targets: lines 92-99 in recv_buffer.c (QuicRecvBufferGetChunkIterator skip loop)
 //
-TEST(DeepTest_AppOwned, WriteToThirdChunkIteratorSkip)
+TEST(DeepTest_RecvBuffer_AppOwned, WriteToThirdChunkIteratorSkip)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_APP_OWNED, false, 0, 0));
@@ -3500,7 +3500,7 @@ TEST(DeepTest_AppOwned, WriteToThirdChunkIteratorSkip)
 // Assertions: Data correctly lands in third chunk, reads back correctly.
 // Coverage targets: lines 91-99 in recv_buffer.c
 //
-TEST(DeepTest_MultipleMode, WriteToThirdChunkIteratorSkip)
+TEST(DeepTest_RecvBuffer_MultipleMode, WriteToThirdChunkIteratorSkip)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
@@ -3550,7 +3550,7 @@ TEST(DeepTest_MultipleMode, WriteToThirdChunkIteratorSkip)
 // Assertions: After full drain, one chunk remains (recycled), ReadStart is 0.
 // Coverage targets: lines 917-918 in recv_buffer.c
 //
-TEST(DeepTest_SingleMode, FullDrainRecyclesChunk)
+TEST(DeepTest_RecvBuffer_SingleMode, FullDrainRecyclesChunk)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_SINGLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
@@ -3583,7 +3583,7 @@ TEST(DeepTest_SingleMode, FullDrainRecyclesChunk)
 // Assertions: After drain, chunk is recycled, ReadStart wraps to valid position.
 // Coverage targets: lines 917-918 in recv_buffer.c
 //
-TEST(DeepTest_CircularMode, FullDrainRecyclesChunk)
+TEST(DeepTest_RecvBuffer_CircularMode, FullDrainRecyclesChunk)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_CIRCULAR, false, 8, LARGE_TEST_BUFFER_LENGTH));
@@ -3610,7 +3610,7 @@ TEST(DeepTest_CircularMode, FullDrainRecyclesChunk)
 // Assertions: Uninitialize cleans up without crash (destructor handles pending read).
 // Coverage targets: line 336 in recv_buffer.c
 //
-TEST(DeepTest_SingleMode, UninitializeWithRetiredChunk)
+TEST(DeepTest_RecvBuffer_SingleMode, UninitializeWithRetiredChunk)
 {
     // Use a raw QUIC_RECV_BUFFER to control uninitialize timing
     QUIC_RECV_BUFFER RawBuf = {};
@@ -3667,7 +3667,7 @@ TEST(DeepTest_SingleMode, UninitializeWithRetiredChunk)
 // Assertions: Returns 0 since contiguous data from 0 is not available.
 // Coverage targets: lines 790-791 in recv_buffer.c
 //
-TEST(DeepTest_AppOwned, ReadBufferNeededCount_NonZeroLow)
+TEST(DeepTest_RecvBuffer_AppOwned, ReadBufferNeededCount_NonZeroLow)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_APP_OWNED, false, 0, 0));

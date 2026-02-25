@@ -79,7 +79,7 @@ struct MockAckTrackerContext {
 // then uninitialize.
 // Assertions: Both ranges have zero size after initialization.
 //
-TEST(DeepTestAckTracker, InitializeAndUninitialize)
+TEST(DeepTest_AckTracker, InitializeAndUninitialize)
 {
     QUIC_ACK_TRACKER Tracker;
     CxPlatZeroMemory(&Tracker, sizeof(Tracker));
@@ -99,7 +99,7 @@ TEST(DeepTestAckTracker, InitializeAndUninitialize)
 // Assertions: All counters are zero, flags are FALSE, ECN is zeroed, ranges
 // are empty.
 //
-TEST(DeepTestAckTracker, ResetClearsAllState)
+TEST(DeepTest_AckTracker, ResetClearsAllState)
 {
     QUIC_ACK_TRACKER Tracker;
     CxPlatZeroMemory(&Tracker, sizeof(Tracker));
@@ -145,7 +145,7 @@ TEST(DeepTestAckTracker, ResetClearsAllState)
 // duplicate detection.
 // Assertions: First add returns FALSE (not duplicate), second returns TRUE.
 //
-TEST(DeepTestAckTracker, AddPacketNumberDetectsDuplicates)
+TEST(DeepTest_AckTracker, AddPacketNumberDetectsDuplicates)
 {
     QUIC_ACK_TRACKER Tracker;
     CxPlatZeroMemory(&Tracker, sizeof(Tracker));
@@ -179,7 +179,7 @@ TEST(DeepTestAckTracker, AddPacketNumberDetectsDuplicates)
 // still works correctly with gaps.
 // Assertions: Each unique packet returns FALSE, each duplicate returns TRUE.
 //
-TEST(DeepTestAckTracker, AddPacketNumberOutOfOrder)
+TEST(DeepTest_AckTracker, AddPacketNumberOutOfOrder)
 {
     QUIC_ACK_TRACKER Tracker;
     CxPlatZeroMemory(&Tracker, sizeof(Tracker));
@@ -206,7 +206,7 @@ TEST(DeepTestAckTracker, AddPacketNumberOutOfOrder)
 // Assertions: HasPacketsToAck reflects the combination of range size and
 // AlreadyWrittenAckFrame.
 //
-TEST(DeepTestAckTracker, HasPacketsToAckFlag)
+TEST(DeepTest_AckTracker, HasPacketsToAckFlag)
 {
     QUIC_ACK_TRACKER Tracker;
     CxPlatZeroMemory(&Tracker, sizeof(Tracker));
@@ -249,7 +249,7 @@ TEST(DeepTestAckTracker, HasPacketsToAckFlag)
 // Scenario: Add packets with gaps, set threshold to 0.
 // Assertions: Always returns FALSE when threshold is 0.
 //
-TEST(DeepTestAckTracker, ReorderingThresholdZeroAlwaysFalse)
+TEST(DeepTest_AckTracker, ReorderingThresholdZeroAlwaysFalse)
 {
     QUIC_ACK_TRACKER Tracker;
     CxPlatZeroMemory(&Tracker, sizeof(Tracker));
@@ -269,7 +269,7 @@ TEST(DeepTestAckTracker, ReorderingThresholdZeroAlwaysFalse)
 // Scenario: Add contiguous packets so there's only 1 sub-range.
 // Assertions: Returns FALSE even with a non-zero threshold.
 //
-TEST(DeepTestAckTracker, ReorderingThresholdSingleRangeFalse)
+TEST(DeepTest_AckTracker, ReorderingThresholdSingleRangeFalse)
 {
     QUIC_ACK_TRACKER Tracker;
     CxPlatZeroMemory(&Tracker, sizeof(Tracker));
@@ -295,7 +295,7 @@ TEST(DeepTestAckTracker, ReorderingThresholdSingleRangeFalse)
 // 2 is a gap between range [1,1] and [5,5]. The difference 5-2=3 >= 1.
 // Assertions: Returns TRUE when gap exceeds threshold.
 //
-TEST(DeepTestAckTracker, ReorderingThresholdDetectsGap)
+TEST(DeepTest_AckTracker, ReorderingThresholdDetectsGap)
 {
     QUIC_ACK_TRACKER Tracker;
     CxPlatZeroMemory(&Tracker, sizeof(Tracker));
@@ -326,7 +326,7 @@ TEST(DeepTestAckTracker, ReorderingThresholdDetectsGap)
 // Scenario: Create a small gap with a high threshold value.
 // Assertions: Returns FALSE when gap does not exceed threshold.
 //
-TEST(DeepTestAckTracker, ReorderingThresholdBelowThreshold)
+TEST(DeepTest_AckTracker, ReorderingThresholdBelowThreshold)
 {
     QUIC_ACK_TRACKER Tracker;
     CxPlatZeroMemory(&Tracker, sizeof(Tracker));
@@ -354,7 +354,7 @@ TEST(DeepTestAckTracker, ReorderingThresholdBelowThreshold)
 // LargestReported above the gap range, causing the function to skip it.
 // Assertions: Returns FALSE when LargestReported is beyond all gaps.
 //
-TEST(DeepTestAckTracker, ReorderingThresholdLargestAckedShiftsLargestReported)
+TEST(DeepTest_AckTracker, ReorderingThresholdLargestAckedShiftsLargestReported)
 {
     QUIC_ACK_TRACKER Tracker;
     CxPlatZeroMemory(&Tracker, sizeof(Tracker));
@@ -385,7 +385,7 @@ TEST(DeepTestAckTracker, ReorderingThresholdLargestAckedShiftsLargestReported)
 // the smallest missing after LargestReported.
 // Assertions: Returns TRUE based on the gap evaluation.
 //
-TEST(DeepTestAckTracker, ReorderingThresholdMultipleGaps)
+TEST(DeepTest_AckTracker, ReorderingThresholdMultipleGaps)
 {
     QUIC_ACK_TRACKER Tracker;
     CxPlatZeroMemory(&Tracker, sizeof(Tracker));
@@ -432,7 +432,7 @@ TEST(DeepTestAckTracker, ReorderingThresholdMultipleGaps)
 // is between the gap, causing PreviousSmallestMissing to be clamped.
 // Assertions: Returns correct result with the LargestReported adjustment.
 //
-TEST(DeepTestAckTracker, ReorderingThresholdLargestReportedClampsMissing)
+TEST(DeepTest_AckTracker, ReorderingThresholdLargestReportedClampsMissing)
 {
     QUIC_ACK_TRACKER Tracker;
     CxPlatZeroMemory(&Tracker, sizeof(Tracker));
@@ -478,7 +478,7 @@ TEST(DeepTestAckTracker, ReorderingThresholdLargestReportedClampsMissing)
 // Assertions: Packet in range, counter unchanged, AlreadyWrittenAckFrame
 // cleared.
 //
-TEST(DeepTestAckTracker, AckPacketNonAckEliciting)
+TEST(DeepTest_AckTracker, AckPacketNonAckEliciting)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -513,7 +513,7 @@ TEST(DeepTestAckTracker, AckPacketNonAckEliciting)
 // should immediately set the ACK send flag.
 // Assertions: ACK send flag is set, AckElicitingPacketsToAcknowledge is 1.
 //
-TEST(DeepTestAckTracker, AckPacketAckElicitingImmediateAck)
+TEST(DeepTest_AckTracker, AckPacketAckElicitingImmediateAck)
 {
     MockAckTrackerContext Ctx;
     Ctx.Connection.Settings.MaxAckDelayMs = 0;
@@ -532,7 +532,7 @@ TEST(DeepTestAckTracker, AckPacketAckElicitingImmediateAck)
 // should force the ACK flag.
 // Assertions: ACK send flag is set.
 //
-TEST(DeepTestAckTracker, AckPacketAckImmediateType)
+TEST(DeepTest_AckTracker, AckPacketAckImmediateType)
 {
     MockAckTrackerContext Ctx;
     Ctx.Connection.Settings.MaxAckDelayMs = 25;
@@ -557,7 +557,7 @@ TEST(DeepTestAckTracker, AckPacketAckImmediateType)
 // NOT trigger immediate ACK, but the second should.
 // Assertions: ACK flag set only after tolerance reached.
 //
-TEST(DeepTestAckTracker, AckPacketReachesPacketTolerance)
+TEST(DeepTest_AckTracker, AckPacketReachesPacketTolerance)
 {
     MockAckTrackerContext Ctx;
     Ctx.Connection.Settings.MaxAckDelayMs = 25;
@@ -598,7 +598,7 @@ TEST(DeepTestAckTracker, AckPacketReachesPacketTolerance)
 // The code should take the early exit at line 243.
 // Assertions: Counter incremented, no crash, flag still set.
 //
-TEST(DeepTestAckTracker, AckPacketSkipsWhenAckAlreadyQueued)
+TEST(DeepTest_AckTracker, AckPacketSkipsWhenAckAlreadyQueued)
 {
     MockAckTrackerContext Ctx;
     Ctx.Connection.Send.SendFlags |= QUIC_CONN_SEND_FLAG_ACK;
@@ -618,7 +618,7 @@ TEST(DeepTestAckTracker, AckPacketSkipsWhenAckAlreadyQueued)
 // is greater, so Stats.Recv.ReorderedPackets should be incremented.
 // Assertions: ReorderedPackets count is exactly 1.
 //
-TEST(DeepTestAckTracker, AckPacketDetectsReordering)
+TEST(DeepTest_AckTracker, AckPacketDetectsReordering)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -647,7 +647,7 @@ TEST(DeepTestAckTracker, AckPacketDetectsReordering)
 // those points).
 // Assertions: RecvTime matches the time of the largest packet.
 //
-TEST(DeepTestAckTracker, AckPacketUpdatesRecvTimeForLargest)
+TEST(DeepTest_AckTracker, AckPacketUpdatesRecvTimeForLargest)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -675,7 +675,7 @@ TEST(DeepTestAckTracker, AckPacketUpdatesRecvTimeForLargest)
 // Assertions: Each ECN counter matches expected value, flag is set for
 // non-zero ECN.
 //
-TEST(DeepTestAckTracker, AckPacketEcnHandling)
+TEST(DeepTest_AckTracker, AckPacketEcnHandling)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -726,7 +726,7 @@ TEST(DeepTestAckTracker, AckPacketEcnHandling)
 // is cleared.
 // Assertions: AlreadyWrittenAckFrame is FALSE after receiving a new packet.
 //
-TEST(DeepTestAckTracker, AckPacketClearsAlreadyWrittenFlag)
+TEST(DeepTest_AckTracker, AckPacketClearsAlreadyWrittenFlag)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -744,7 +744,7 @@ TEST(DeepTestAckTracker, AckPacketClearsAlreadyWrittenFlag)
 // that triggers the reordering threshold check.
 // Assertions: ACK flag is set due to reordering detection.
 //
-TEST(DeepTestAckTracker, AckPacketReorderingTriggersImmediateAck)
+TEST(DeepTest_AckTracker, AckPacketReorderingTriggersImmediateAck)
 {
     MockAckTrackerContext Ctx;
     Ctx.Connection.Settings.MaxAckDelayMs = 25;
@@ -779,7 +779,7 @@ TEST(DeepTestAckTracker, AckPacketReorderingTriggersImmediateAck)
 // verify older packets are removed.
 // Assertions: Min of ToAck range is LargestAckedPacketNumber+1.
 //
-TEST(DeepTestAckTracker, OnAckFrameAckedRemovesOldPackets)
+TEST(DeepTest_AckTracker, OnAckFrameAckedRemovesOldPackets)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -813,7 +813,7 @@ TEST(DeepTestAckTracker, OnAckFrameAckedRemovesOldPackets)
 // Scenario: Ack all packets, verify the ToAck range becomes empty.
 // Assertions: Range size is 0 after acking all.
 //
-TEST(DeepTestAckTracker, OnAckFrameAckedRemovesAll)
+TEST(DeepTest_AckTracker, OnAckFrameAckedRemovesAll)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -835,7 +835,7 @@ TEST(DeepTestAckTracker, OnAckFrameAckedRemovesAll)
 // the inconsistency (counter > 0 but no ranges) and reset the counter.
 // Assertions: AckElicitingPacketsToAcknowledge is 0 after full ack.
 //
-TEST(DeepTestAckTracker, OnAckFrameAckedClearsAckElicitingCounter)
+TEST(DeepTest_AckTracker, OnAckFrameAckedClearsAckElicitingCounter)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -863,7 +863,7 @@ TEST(DeepTestAckTracker, OnAckFrameAckedClearsAckElicitingCounter)
 // the ack of that ACK frame.
 // Assertions: State transitions correctly through the lifecycle.
 //
-TEST(DeepTestAckTracker, FullLifecycleReceiveToAcked)
+TEST(DeepTest_AckTracker, FullLifecycleReceiveToAcked)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -903,7 +903,7 @@ TEST(DeepTestAckTracker, FullLifecycleReceiveToAcked)
 // them acked, verifying state is clean between cycles.
 // Assertions: Tracker resets properly between cycles.
 //
-TEST(DeepTestAckTracker, MultipleCycles)
+TEST(DeepTest_AckTracker, MultipleCycles)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -949,7 +949,7 @@ TEST(DeepTestAckTracker, MultipleCycles)
 // boundaries to verify no overflow.
 // Assertions: Duplicate detection works with large values.
 //
-TEST(DeepTestAckTracker, AddPacketNumberLargeValues)
+TEST(DeepTest_AckTracker, AddPacketNumberLargeValues)
 {
     QUIC_ACK_TRACKER Tracker;
     CxPlatZeroMemory(&Tracker, sizeof(Tracker));
@@ -971,7 +971,7 @@ TEST(DeepTestAckTracker, AddPacketNumberLargeValues)
 // Scenario: Packet number 0 is a valid QUIC packet number. Verify it works.
 // Assertions: Packet 0 is added to ToAck range, RecvTime updated.
 //
-TEST(DeepTestAckTracker, AckPacketZero)
+TEST(DeepTest_AckTracker, AckPacketZero)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -990,7 +990,7 @@ TEST(DeepTestAckTracker, AckPacketZero)
 // Scenario: Only packet 0 exists. Acking packet 0 should clear the range.
 // Assertions: ToAck range is empty after acking packet 0.
 //
-TEST(DeepTestAckTracker, OnAckFrameAckedPacketZero)
+TEST(DeepTest_AckTracker, OnAckFrameAckedPacketZero)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -1008,7 +1008,7 @@ TEST(DeepTestAckTracker, OnAckFrameAckedPacketZero)
 // Scenario: Receive packets 1, 5, 10. Ack up to 5. Packet 10 should remain.
 // Assertions: Only packet 10 remains in the ToAck range.
 //
-TEST(DeepTestAckTracker, OnAckFrameAckedPreservesNewer)
+TEST(DeepTest_AckTracker, OnAckFrameAckedPreservesNewer)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -1035,7 +1035,7 @@ TEST(DeepTestAckTracker, OnAckFrameAckedPreservesNewer)
 // Scenario: Receive packets, then reset and verify all state is clean.
 // Assertions: All fields are zero/default after reset.
 //
-TEST(DeepTestAckTracker, ResetAfterReceivingPackets)
+TEST(DeepTest_AckTracker, ResetAfterReceivingPackets)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -1070,7 +1070,7 @@ TEST(DeepTestAckTracker, ResetAfterReceivingPackets)
 // all counters accumulate correctly.
 // Assertions: Each counter has the expected accumulated value.
 //
-TEST(DeepTestAckTracker, AckPacketMixedEcnAccumulation)
+TEST(DeepTest_AckTracker, AckPacketMixedEcnAccumulation)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -1104,7 +1104,7 @@ TEST(DeepTestAckTracker, AckPacketMixedEcnAccumulation)
 // Assertions: Returns TRUE, AlreadyWrittenAckFrame is TRUE,
 // LargestPacketNumberAcknowledged updated, Metadata FrameCount incremented.
 //
-TEST(DeepTestAckTracker, AckFrameEncodeBasic)
+TEST(DeepTest_AckTracker, AckFrameEncodeBasic)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -1156,7 +1156,7 @@ TEST(DeepTestAckTracker, AckFrameEncodeBasic)
 // Scenario: Set up a builder with a very small buffer that can't hold the ACK.
 // Assertions: Returns FALSE.
 //
-TEST(DeepTestAckTracker, AckFrameEncodeInsufficientSpace)
+TEST(DeepTest_AckTracker, AckFrameEncodeInsufficientSpace)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -1196,7 +1196,7 @@ TEST(DeepTestAckTracker, AckFrameEncodeInsufficientSpace)
 // is passed to the encoder.
 // Assertions: Returns TRUE, NonZeroRecvECN was set before encoding.
 //
-TEST(DeepTestAckTracker, AckFrameEncodeWithEcn)
+TEST(DeepTest_AckTracker, AckFrameEncodeWithEcn)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -1239,7 +1239,7 @@ TEST(DeepTestAckTracker, AckFrameEncodeWithEcn)
 // counter should be cleared.
 // Assertions: Counter is 0 after encode.
 //
-TEST(DeepTestAckTracker, AckFrameEncodeClearsAckElicitingCounter)
+TEST(DeepTest_AckTracker, AckFrameEncodeClearsAckElicitingCounter)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -1286,7 +1286,7 @@ TEST(DeepTestAckTracker, AckFrameEncodeClearsAckElicitingCounter)
 // Scenario: Add non-contiguous packets to create gaps in the ACK blocks.
 // Assertions: Encode succeeds and produces output bytes.
 //
-TEST(DeepTestAckTracker, AckFrameEncodeWithGaps)
+TEST(DeepTest_AckTracker, AckFrameEncodeWithGaps)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -1336,7 +1336,7 @@ TEST(DeepTestAckTracker, AckFrameEncodeWithGaps)
 // one sub-range.
 // Assertions: Range size is 1 with correct min/max.
 //
-TEST(DeepTestAckTracker, AckPacketContiguousMerge)
+TEST(DeepTest_AckTracker, AckPacketContiguousMerge)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -1361,7 +1361,7 @@ TEST(DeepTestAckTracker, AckPacketContiguousMerge)
 // Scenario: Add packets 5,4,3,2,1 and verify they merge into one range.
 // Assertions: Single range from 1 to 5, reordering counted each time.
 //
-TEST(DeepTestAckTracker, AckPacketReverseOrderMerge)
+TEST(DeepTest_AckTracker, AckPacketReverseOrderMerge)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -1393,7 +1393,7 @@ TEST(DeepTestAckTracker, AckPacketReverseOrderMerge)
 // TRUE again.
 // Assertions: State transitions correctly from Written back to Receiving.
 //
-TEST(DeepTestAckTracker, AckFrameEncodeThenNewPacket)
+TEST(DeepTest_AckTracker, AckFrameEncodeThenNewPacket)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -1443,7 +1443,7 @@ TEST(DeepTestAckTracker, AckFrameEncodeThenNewPacket)
 // a large buffer, and verify encoding succeeds.
 // Assertions: Returns TRUE, DatagramLength includes timestamp + ACK bytes.
 //
-TEST(DeepTestAckTracker, AckFrameEncodeWithTimestamp)
+TEST(DeepTest_AckTracker, AckFrameEncodeWithTimestamp)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();
@@ -1488,7 +1488,7 @@ TEST(DeepTestAckTracker, AckFrameEncodeWithTimestamp)
 // buffer that can't fit even the timestamp frame.
 // Assertions: Returns FALSE because the timestamp frame couldn't be encoded.
 //
-TEST(DeepTestAckTracker, AckFrameEncodeTimestampInsufficientSpace)
+TEST(DeepTest_AckTracker, AckFrameEncodeTimestampInsufficientSpace)
 {
     MockAckTrackerContext Ctx;
     auto* Tracker = Ctx.Tracker();

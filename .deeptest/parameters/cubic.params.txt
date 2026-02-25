@@ -1,7 +1,1 @@
-component = Cubic
-source = .\src\core\cubic.c
-header = .\src\core\cubic.h
-harness = .\src\core\unittest\CubicTest.cpp
-build = .\scripts\build.ps1
-test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
-coverage_result = .\artifacts\coverage\msquiccoverage.xml
+copilot --autopilot --yolo --max-autopilot-continues 100 --agent DeepTest -p "component = Cubic \n source = .\\src\\core\\cubic.c \n header = .\\src\\core\\cubic.h \n harness = .\\src\\core\\unittest\\CubicTest.cpp \n build = .\\scripts\\build.ps1 \n test = .\\scripts\\test.ps1 -Filter *DeepTest_Cubic* -CodeCoverage \n coverage_result = .\\artifacts\\coverage\\msquiccoverage.xml"

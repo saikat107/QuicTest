@@ -1,7 +1,1 @@
-component = Bbr
-source = .\src\core\bbr.c
-header = .\src\core\bbr.h
-harness = .\src\core\unittest\BbrTest.cpp
-build = .\scripts\build.ps1
-test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
-coverage_result = .\artifacts\coverage\msquiccoverage.xml
+copilot --autopilot --yolo --max-autopilot-continues 100 --agent DeepTest -p "component = Bbr \n source = .\\src\\core\\bbr.c \n header = .\\src\\core\\bbr.h \n harness = .\\src\\core\\unittest\\BbrTest.cpp \n build = .\\scripts\\build.ps1 \n test = .\\scripts\\test.ps1 -Filter *DeepTest_Bbr* -CodeCoverage \n coverage_result = .\\artifacts\\coverage\\msquiccoverage.xml"

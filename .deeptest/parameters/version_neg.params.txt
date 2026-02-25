@@ -1,7 +1,1 @@
-component = VersionNeg
-source = .\src\core\version_neg.c
-header = .\src\core\version_neg.h
-harness = .\src\core\unittest\VersionNegExtTest.cpp
-build = .\scripts\build.ps1
-test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
-coverage_result = .\artifacts\coverage\msquiccoverage.xml
+copilot --autopilot --yolo --max-autopilot-continues 100 --agent DeepTest -p "component = VersionNeg \n source = .\\src\\core\\version_neg.c \n header = .\\src\\core\\version_neg.h \n harness = .\\src\\core\\unittest\\VersionNegExtTest.cpp \n build = .\\scripts\\build.ps1 \n test = .\\scripts\\test.ps1 -Filter *DeepTest_VersionNeg* -CodeCoverage \n coverage_result = .\\artifacts\\coverage\\msquiccoverage.xml"

@@ -1,7 +1,1 @@
-component = SentPacketMetadata
-source = .\src\core\sent_packet_metadata.c
-header = .\src\core\sent_packet_metadata.h
-harness = .\src\core\unittest\SentPacketMetadataTest.cpp
-build = .\scripts\build.ps1
-test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
-coverage_result = .\artifacts\coverage\msquiccoverage.xml
+copilot --autopilot --yolo --max-autopilot-continues 100 --agent DeepTest -p "component = SentPacketMetadata \n source = .\\src\\core\\sent_packet_metadata.c \n header = .\\src\\core\\sent_packet_metadata.h \n harness = .\\src\\core\\unittest\\SentPacketMetadataTest.cpp \n build = .\\scripts\\build.ps1 \n test = .\\scripts\\test.ps1 -Filter *DeepTest_SentPacketMetadata* -CodeCoverage \n coverage_result = .\\artifacts\\coverage\\msquiccoverage.xml"

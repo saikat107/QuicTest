@@ -1,7 +1,1 @@
-component = Binding
-source = .\src\core\binding.c
-header = .\src\core\binding.h
-harness = .\src\core\unittest\BindingTest.cpp
-build = .\scripts\build.ps1
-test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
-coverage_result = .\artifacts\coverage\msquiccoverage.xml
+copilot --autopilot --yolo --max-autopilot-continues 100 --agent DeepTest -p "component = Binding \n source = .\\src\\core\\binding.c \n header = .\\src\\core\\binding.h \n harness = .\\src\\core\\unittest\\BindingTest.cpp \n build = .\\scripts\\build.ps1 \n test = .\\scripts\\test.ps1 -Filter *DeepTest_Binding* -CodeCoverage \n coverage_result = .\\artifacts\\coverage\\msquiccoverage.xml"

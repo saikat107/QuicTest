@@ -1,7 +1,1 @@
-component = CongestionControl
-source = .\src\core\congestion_control.c
-header = .\src\core\congestion_control.h
-harness = .\src\core\unittest\CongestionControlTest.cpp
-build = .\scripts\build.ps1
-test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
-coverage_result = .\artifacts\coverage\msquiccoverage.xml
+copilot --autopilot --yolo --max-autopilot-continues 100 --agent DeepTest -p "component = CongestionControl \n source = .\\src\\core\\congestion_control.c \n header = .\\src\\core\\congestion_control.h \n harness = .\\src\\core\\unittest\\CongestionControlTest.cpp \n build = .\\scripts\\build.ps1 \n test = .\\scripts\\test.ps1 -Filter *DeepTest_CongestionControl* -CodeCoverage \n coverage_result = .\\artifacts\\coverage\\msquiccoverage.xml"

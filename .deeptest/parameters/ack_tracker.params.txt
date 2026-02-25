@@ -1,7 +1,1 @@
-component = AckTracker
-source = .\src\core\ack_tracker.c
-header = .\src\core\ack_tracker.h
-harness = .\src\core\unittest\AckTrackerTest.cpp
-build = .\scripts\build.ps1
-test = .\scripts\test.ps1 -Filter *DeepTest* -CodeCoverage
-coverage_result = .\artifacts\coverage\msquiccoverage.xml
+copilot --autopilot --yolo --max-autopilot-continues 100 --agent DeepTest -p "component = AckTracker \n source = .\\src\\core\\ack_tracker.c \n header = .\\src\\core\\ack_tracker.h \n harness = .\\src\\core\\unittest\\AckTrackerTest.cpp \n build = .\\scripts\\build.ps1 \n test = .\\scripts\\test.ps1 -Filter *DeepTest_AckTracker* -CodeCoverage \n coverage_result = .\\artifacts\\coverage\\msquiccoverage.xml"
