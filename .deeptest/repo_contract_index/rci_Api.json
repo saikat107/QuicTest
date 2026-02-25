@@ -1,0 +1,118 @@
+{
+  "component": "Api",
+  "source": "src/core/api.c",
+  "header": "src/core/api.h",
+  "harness": "src/core/unittest/ApiTest.cpp",
+  "public_apis": [
+    {
+      "name": "MsQuicConnectionOpen",
+      "signature": "QUIC_STATUS MsQuicConnectionOpen(HQUIC RegistrationHandle, QUIC_CONNECTION_CALLBACK_HANDLER Handler, void* Context, HQUIC* NewConnection)",
+      "declared_in": "src/core/api.h",
+      "preconditions": ["RegistrationHandle is valid REGISTRATION handle", "Handler non-null", "NewConnection non-null"],
+      "postconditions": ["On success: *NewConnection is valid connection handle", "On failure: QUIC_STATUS_INVALID_PARAMETER"],
+      "error_codes": ["QUIC_STATUS_INVALID_PARAMETER", "QUIC_STATUS_OUT_OF_MEMORY"]
+    },
+    {
+      "name": "MsQuicConnectionOpenInPartition",
+      "signature": "QUIC_STATUS MsQuicConnectionOpenInPartition(HQUIC RegistrationHandle, uint16_t PartitionIndex, QUIC_CONNECTION_CALLBACK_HANDLER Handler, void* Context, HQUIC* NewConnection)",
+      "declared_in": "src/core/api.h",
+      "preconditions": ["RegistrationHandle valid", "PartitionIndex < MsQuicLib.PartitionCount", "Handler non-null", "NewConnection non-null"],
+      "postconditions": ["On success: *NewConnection is valid connection with Partitioned=TRUE"],
+      "error_codes": ["QUIC_STATUS_INVALID_PARAMETER", "QUIC_STATUS_OUT_OF_MEMORY"]
+    },
+    {
+      "name": "MsQuicConnectionClose",
+      "signature": "void MsQuicConnectionClose(HQUIC Handle)",
+      "declared_in": "src/core/api.h",
+      "preconditions": ["Handle is valid CONNECTION handle"],
+      "postconditions": ["Connection handle is released", "If not on worker: blocks until close processed"],
+      "side_effects": ["Releases QUIC_CONN_REF_HANDLE_OWNER reference"]
+    },
+    {
+      "name": "MsQuicConnectionShutdown",
+      "signature": "void MsQuicConnectionShutdown(HQUIC Handle, QUIC_CONNECTION_SHUTDOWN_FLAGS Flags, QUIC_UINT62 ErrorCode)",
+      "declared_in": "src/core/api.h",
+      "preconditions": ["Handle is CONNECTION or STREAM handle", "ErrorCode <= QUIC_UINT62_MAX"],
+      "postconditions": ["Shutdown operation queued"],
+      "note": "ErrorCode > QUIC_UINT62_MAX triggers QUIC_CONN_VERIFY (debug assertion)"
+    },
+    {
+      "name": "MsQuicConnectionStart",
+      "signature": "QUIC_STATUS MsQuicConnectionStart(HQUIC Handle, HQUIC ConfigHandle, QUIC_ADDRESS_FAMILY Family, const char* ServerName, uint16_t ServerPort)",
+      "declared_in": "src/core/api.h",
+      "preconditions": ["Handle is CLIENT connection", "ConfigHandle is valid CONFIGURATION", "Family is valid", "ServerPort != 0", "SecurityConfig non-null in Configuration"],
+      "postconditions": ["On success: QUIC_STATUS_PENDING", "Connection.Started set asynchronously by worker"],
+      "error_codes": ["QUIC_STATUS_INVALID_PARAMETER", "QUIC_STATUS_INVALID_STATE", "QUIC_STATUS_OUT_OF_MEMORY"]
+    },
+    {
+      "name": "MsQuicConnectionSetConfiguration",
+      "signature": "QUIC_STATUS MsQuicConnectionSetConfiguration(HQUIC Handle, HQUIC ConfigHandle)",
+      "declared_in": "src/core/api.h",
+      "preconditions": ["Handle is SERVER connection or STREAM on server connection", "ConfigHandle is valid CONFIGURATION with SecurityConfig"],
+      "postconditions": ["On success: QUIC_STATUS_PENDING"],
+      "error_codes": ["QUIC_STATUS_INVALID_PARAMETER", "QUIC_STATUS_INVALID_STATE", "QUIC_STATUS_OUT_OF_MEMORY"],
+      "note": "Returns QUIC_STATUS_INVALID_PARAMETER for client connections"
+    },
+    {
+      "name": "MsQuicStreamOpen",
+      "signature": "QUIC_STATUS MsQuicStreamOpen(HQUIC Handle, QUIC_STREAM_OPEN_FLAGS Flags, QUIC_STREAM_CALLBACK_HANDLER Handler, void* Context, HQUIC* NewStream)",
+      "declared_in": "src/core/api.h",
+      "preconditions": ["Handle is CONNECTION or STREAM handle", "Handler non-null", "NewStream non-null", "Connection not ClosedLocally or ClosedRemotely"],
+      "postconditions": ["On success: *NewStream is valid stream handle"],
+      "error_codes": ["QUIC_STATUS_INVALID_PARAMETER", "QUIC_STATUS_INVALID_STATE", "QUIC_STATUS_ABORTED"]
+    },
+    {
+      "name": "MsQuicStreamStart",
+      "signature": "QUIC_STATUS MsQuicStreamStart(HQUIC Handle, QUIC_STREAM_START_FLAGS Flags)",
+      "declared_in": "src/core/api.h",
+      "preconditions": ["Handle is STREAM handle", "Stream not already Started"],
+      "postconditions": ["On success: QUIC_STATUS_PENDING"],
+      "error_codes": ["QUIC_STATUS_INVALID_PARAMETER", "QUIC_STATUS_INVALID_STATE", "QUIC_STATUS_ABORTED", "QUIC_STATUS_OUT_OF_MEMORY"]
+    },
+    {
+      "name": "MsQuicStreamSend",
+      "signature": "QUIC_STATUS MsQuicStreamSend(HQUIC Handle, const QUIC_BUFFER* Buffers, uint32_t BufferCount, QUIC_SEND_FLAGS Flags, void* ClientSendContext)",
+      "declared_in": "src/core/api.h",
+      "preconditions": ["Handle is STREAM handle", "Buffers non-null if BufferCount > 0", "TotalLength <= UINT32_MAX", "Stream.SendEnabled is true"],
+      "postconditions": ["On success: QUIC_STATUS_PENDING"],
+      "error_codes": ["QUIC_STATUS_INVALID_PARAMETER", "QUIC_STATUS_INVALID_STATE", "QUIC_STATUS_ABORTED", "QUIC_STATUS_OUT_OF_MEMORY"]
+    },
+    {
+      "name": "MsQuicSetParam",
+      "signature": "QUIC_STATUS MsQuicSetParam(HQUIC Handle, uint32_t Param, uint32_t BufferLength, const void* Buffer)",
+      "declared_in": "src/core/api.h",
+      "preconditions": ["Global params: Handle must be NULL", "Non-global params: Handle must be valid typed handle"],
+      "postconditions": ["Synchronous for global/registration/config/listener", "Blocking for connection/stream"],
+      "note": "QUIC_PARAM_HIGH_PRIORITY flag routes to priority queue"
+    },
+    {
+      "name": "MsQuicGetParam",
+      "signature": "QUIC_STATUS MsQuicGetParam(HQUIC Handle, uint32_t Param, uint32_t* BufferLength, void* Buffer)",
+      "declared_in": "src/core/api.h",
+      "preconditions": ["BufferLength non-null", "Global params: Handle must be NULL", "Non-global: Handle must be valid"],
+      "postconditions": ["Synchronous for global/registration/config/listener", "Blocking for connection/stream"],
+      "note": "QUIC_PARAM_HIGH_PRIORITY flag routes to priority queue"
+    },
+    {
+      "name": "MsQuicDatagramSend",
+      "signature": "QUIC_STATUS MsQuicDatagramSend(HQUIC Handle, const QUIC_BUFFER* Buffers, uint32_t BufferCount, QUIC_SEND_FLAGS Flags, void* ClientSendContext)",
+      "declared_in": "src/core/api.h",
+      "preconditions": ["Handle is CONNECTION handle", "Buffers non-null", "BufferCount > 0", "TotalLength <= UINT16_MAX"],
+      "postconditions": ["On success: datagram queued via QuicDatagramQueueSend"],
+      "error_codes": ["QUIC_STATUS_INVALID_PARAMETER", "QUIC_STATUS_OUT_OF_MEMORY"]
+    }
+  ],
+  "coverage": {
+    "total_lines": 796,
+    "covered_lines": 591,
+    "percentage": 74.2,
+    "contract_unreachable_categories": [
+      "OOM/allocation failure paths",
+      "Worker thread inline execution paths",
+      "Server-side connection paths",
+      "Remote close / ClosedRemotely paths",
+      "Debug assertion paths (CXPLAT_DBG_ASSERT)",
+      "Synchronous blocking paths (CxPlatEventWaitForever hang)"
+    ]
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "component": "AckTracker",
+  "source": "src/core/ack_tracker.c",
+  "header": "src/core/ack_tracker.h",
+  "public_apis": [
+    {
+      "name": "QuicAckTrackerInitialize",
+      "signature": "void QuicAckTrackerInitialize(QUIC_ACK_TRACKER* Tracker)",
+      "needs_connection": false,
+      "preconditions": ["Tracker points to valid memory"],
+      "postconditions": ["Both ranges initialized"]
+    },
+    {
+      "name": "QuicAckTrackerUninitialize",
+      "signature": "void QuicAckTrackerUninitialize(QUIC_ACK_TRACKER* Tracker)",
+      "needs_connection": false,
+      "preconditions": ["Tracker was initialized"],
+      "postconditions": ["Both ranges freed"]
+    },
+    {
+      "name": "QuicAckTrackerReset",
+      "signature": "void QuicAckTrackerReset(QUIC_ACK_TRACKER* Tracker)",
+      "needs_connection": false,
+      "preconditions": ["Tracker was initialized"],
+      "postconditions": ["All state zeroed/reset"]
+    },
+    {
+      "name": "QuicAckTrackerAddPacketNumber",
+      "signature": "BOOLEAN QuicAckTrackerAddPacketNumber(QUIC_ACK_TRACKER* Tracker, uint64_t PacketNumber)",
+      "needs_connection": false,
+      "preconditions": ["Tracker was initialized"],
+      "postconditions": ["PacketNumber in PacketNumbersReceived"],
+      "returns": "TRUE if duplicate"
+    },
+    {
+      "name": "QuicAckTrackerDidHitReorderingThreshold",
+      "signature": "BOOLEAN QuicAckTrackerDidHitReorderingThreshold(QUIC_ACK_TRACKER* Tracker, uint8_t ReorderingThreshold)",
+      "needs_connection": false,
+      "preconditions": ["Tracker was initialized"],
+      "returns": "TRUE if reordering exceeds threshold"
+    },
+    {
+      "name": "QuicAckTrackerAckPacket",
+      "signature": "void QuicAckTrackerAckPacket(QUIC_ACK_TRACKER* Tracker, uint64_t PacketNumber, uint64_t RecvTimeUs, CXPLAT_ECN_TYPE ECN, QUIC_ACK_TYPE AckType)",
+      "needs_connection": true,
+      "preconditions": ["Tracker embedded in QUIC_PACKET_SPACE", "Connection valid", "Non-duplicate packet"],
+      "postconditions": ["PacketNumber in PacketNumbersToAck", "ECN counters updated", "ACK scheduling state updated"]
+    },
+    {
+      "name": "QuicAckTrackerAckFrameEncode",
+      "signature": "BOOLEAN QuicAckTrackerAckFrameEncode(QUIC_ACK_TRACKER* Tracker, QUIC_PACKET_BUILDER* Builder)",
+      "needs_connection": true,
+      "preconditions": ["HasPacketsToAck == TRUE", "Builder properly initialized"],
+      "returns": "TRUE if encode succeeded"
+    },
+    {
+      "name": "QuicAckTrackerOnAckFrameAcked",
+      "signature": "void QuicAckTrackerOnAckFrameAcked(QUIC_ACK_TRACKER* Tracker, uint64_t LargestAckedPacketNumber)",
+      "needs_connection": true,
+      "preconditions": ["Tracker embedded in QUIC_PACKET_SPACE", "Connection valid"],
+      "postconditions": ["PacketNumbersToAck min raised"]
+    },
+    {
+      "name": "QuicAckTrackerHasPacketsToAck",
+      "signature": "BOOLEAN QuicAckTrackerHasPacketsToAck(const QUIC_ACK_TRACKER* Tracker)",
+      "needs_connection": false,
+      "inline": true,
+      "returns": "!AlreadyWrittenAckFrame && PacketNumbersToAck size != 0"
+    }
+  ],
+  "state_machine": {
+    "states": ["Empty", "Receiving", "Written", "Acked"],
+    "transitions": [
+      {"from": "Empty", "to": "Receiving", "trigger": "AckPacket"},
+      {"from": "Receiving", "to": "Written", "trigger": "AckFrameEncode"},
+      {"from": "Written", "to": "Receiving", "trigger": "AckPacket(new)"},
+      {"from": "Written", "to": "Acked", "trigger": "OnAckFrameAcked"},
+      {"from": "Receiving", "to": "Acked", "trigger": "OnAckFrameAcked"},
+      {"from": "Acked", "to": "Receiving", "trigger": "AckPacket(new)"},
+      {"from": "Any", "to": "Empty", "trigger": "Reset"}
+    ]
+  }
+}

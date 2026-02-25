@@ -5,6 +5,7 @@ set(SOURCES
     main.cpp
     AckTrackerTest.cpp
     ApiTest.cpp
+    ApiTestHelper.c
     BbrTest.cpp
     BindingTest.cpp
     ConfigurationTest.cpp

@@ -50,6 +50,5 @@ If you are running on a PR, you must generate tests for the modified functions i
 
 Your task is to augment the existing test harness, if applicable {{#if harness}} (found in {{harness}}){{/if}}, with high quality tests that improve coverage. If no test harness exists, you must learn from patters in the project to set up the mocks and harness yourself.
 
-If a focal function name is provided, or the PR modifies api functions that lend themselves well to unit testing, you must invoke the **unit-test** skill with the appropriate inputs. Otherwise, you must invoke the **component-test** skill with the appropriate inputs. 
+If a focal function name is provided, you must invoke the **unit-test** skill with the appropriate inputs. Otherwise, you must invoke the **component-test** skill with the appropriate inputs. 
 
-To get started, you must generate a semantic index for the component's source code, or check the existing index for the component. Use the **semantic-indexer** skill with the appropriate inputs to create this index. This will help you understand the code structure and identify deeper areas that need more testing.
