@@ -1,0 +1,148 @@
+{
+  "component": "CUBIC_CONGESTION_CONTROL",
+  "source_file": "src/core/cubic.c",
+  "header_file": "src/core/cubic.h",
+  "public_functions": [
+    {
+      "name": "CubicCongestionControlInitialize",
+      "signature": "void CubicCongestionControlInitialize(_In_ QUIC_CONGESTION_CONTROL* Cc, _In_ const QUIC_SETTINGS_INTERNAL* Settings)",
+      "preconditions": ["Cc != NULL", "Settings != NULL", "Connection accessible and initialized", "Connection->Paths[0].Mtu valid"],
+      "postconditions": ["All 17 function pointers set", "SlowStartThreshold == UINT32_MAX", "CongestionWindow > 0", "HyStartState == HYSTART_NOT_STARTED"],
+      "tested": true
+    },
+    {
+      "name": "CubicCongestionControlCanSend",
+      "signature": "BOOLEAN CubicCongestionControlCanSend(_In_ QUIC_CONGESTION_CONTROL* Cc)",
+      "preconditions": ["Cc initialized"],
+      "postconditions": ["Returns TRUE if BytesInFlight < CongestionWindow OR Exemptions > 0"],
+      "tested": true
+    },
+    {
+      "name": "CubicCongestionControlSetExemption",
+      "signature": "void CubicCongestionControlSetExemption(_In_ QUIC_CONGESTION_CONTROL* Cc, _In_ uint8_t NumPackets)",
+      "preconditions": ["Cc initialized"],
+      "postconditions": ["Exemptions == NumPackets"],
+      "tested": true
+    },
+    {
+      "name": "CubicCongestionControlReset",
+      "signature": "void CubicCongestionControlReset(_In_ QUIC_CONGESTION_CONTROL* Cc, _In_ BOOLEAN FullReset)",
+      "preconditions": ["Cc initialized"],
+      "postconditions": ["SlowStartThreshold == UINT32_MAX", "CongestionWindow reset", "HyStart reset", "If FullReset: BytesInFlight == 0"],
+      "tested": true
+    },
+    {
+      "name": "CubicCongestionControlGetSendAllowance",
+      "signature": "uint32_t CubicCongestionControlGetSendAllowance(_In_ QUIC_CONGESTION_CONTROL* Cc, _In_ uint64_t TimeSinceLastSend, _In_ BOOLEAN TimeSinceLastSendValid)",
+      "preconditions": ["Cc initialized"],
+      "postconditions": ["Returns 0 if CC blocked", "Returns available window otherwise", "Applies pacing if conditions met"],
+      "tested": true
+    },
+    {
+      "name": "CubicCongestionControlOnDataSent",
+      "signature": "void CubicCongestionControlOnDataSent(_In_ QUIC_CONGESTION_CONTROL* Cc, _In_ uint32_t NumRetransmittableBytes)",
+      "preconditions": ["Cc initialized"],
+      "postconditions": ["BytesInFlight += NumRetransmittableBytes", "BytesInFlightMax updated if needed", "Exemptions decremented if > 0"],
+      "tested": true
+    },
+    {
+      "name": "CubicCongestionControlOnDataInvalidated",
+      "signature": "BOOLEAN CubicCongestionControlOnDataInvalidated(_In_ QUIC_CONGESTION_CONTROL* Cc, _In_ uint32_t NumRetransmittableBytes)",
+      "preconditions": ["Cc initialized", "BytesInFlight >= NumRetransmittableBytes"],
+      "postconditions": ["BytesInFlight -= NumRetransmittableBytes"],
+      "tested": true
+    },
+    {
+      "name": "CubicCongestionControlOnDataAcknowledged",
+      "signature": "BOOLEAN CubicCongestionControlOnDataAcknowledged(_In_ QUIC_CONGESTION_CONTROL* Cc, _In_ const QUIC_ACK_EVENT* AckEvent)",
+      "preconditions": ["Cc initialized", "AckEvent != NULL", "BytesInFlight >= AckEvent->NumRetransmittableBytes"],
+      "postconditions": ["BytesInFlight decremented", "CongestionWindow adjusted per CUBIC", "Recovery exit if conditions met", "HyStart logic applied"],
+      "tested": true
+    },
+    {
+      "name": "CubicCongestionControlOnDataLost",
+      "signature": "void CubicCongestionControlOnDataLost(_In_ QUIC_CONGESTION_CONTROL* Cc, _In_ const QUIC_LOSS_EVENT* LossEvent)",
+      "preconditions": ["Cc initialized", "LossEvent != NULL", "BytesInFlight >= LossEvent->NumRetransmittableBytes"],
+      "postconditions": ["Congestion event if loss after recovery", "BytesInFlight decremented", "HyStart transitions to DONE"],
+      "tested": true
+    },
+    {
+      "name": "CubicCongestionControlOnEcn",
+      "signature": "void CubicCongestionControlOnEcn(_In_ QUIC_CONGESTION_CONTROL* Cc, _In_ const QUIC_ECN_EVENT* EcnEvent)",
+      "preconditions": ["Cc initialized", "EcnEvent != NULL"],
+      "postconditions": ["Congestion event triggered with Ecn=TRUE"],
+      "tested": true
+    },
+    {
+      "name": "CubicCongestionControlOnSpuriousCongestionEvent",
+      "signature": "BOOLEAN CubicCongestionControlOnSpuriousCongestionEvent(_In_ QUIC_CONGESTION_CONTROL* Cc)",
+      "preconditions": ["Cc initialized"],
+      "postconditions": ["If IsInRecovery: state reverted to Prev* values"],
+      "tested": false
+    },
+    {
+      "name": "CubicCongestionControlLogOutFlowStatus",
+      "signature": "void CubicCongestionControlLogOutFlowStatus(_In_ const QUIC_CONGESTION_CONTROL* Cc)",
+      "preconditions": ["Cc initialized"],
+      "postconditions": ["Trace event emitted"],
+      "tested": true
+    },
+    {
+      "name": "CubicCongestionControlGetExemptions",
+      "signature": "uint8_t CubicCongestionControlGetExemptions(_In_ const QUIC_CONGESTION_CONTROL* Cc)",
+      "preconditions": ["Cc initialized"],
+      "postconditions": ["Returns Exemptions value"],
+      "tested": true
+    },
+    {
+      "name": "CubicCongestionControlGetBytesInFlightMax",
+      "signature": "uint32_t CubicCongestionControlGetBytesInFlightMax(_In_ const QUIC_CONGESTION_CONTROL* Cc)",
+      "preconditions": ["Cc initialized"],
+      "postconditions": ["Returns BytesInFlightMax"],
+      "tested": true
+    },
+    {
+      "name": "CubicCongestionControlGetCongestionWindow",
+      "signature": "uint32_t CubicCongestionControlGetCongestionWindow(_In_ const QUIC_CONGESTION_CONTROL* Cc)",
+      "preconditions": ["Cc initialized"],
+      "postconditions": ["Returns CongestionWindow"],
+      "tested": true
+    },
+    {
+      "name": "CubicCongestionControlIsAppLimited",
+      "signature": "BOOLEAN CubicCongestionControlIsAppLimited(_In_ const QUIC_CONGESTION_CONTROL* Cc)",
+      "preconditions": ["Cc initialized"],
+      "postconditions": ["Always returns FALSE"],
+      "tested": true
+    },
+    {
+      "name": "CubicCongestionControlSetAppLimited",
+      "signature": "void CubicCongestionControlSetAppLimited(_In_ struct QUIC_CONGESTION_CONTROL* Cc)",
+      "preconditions": ["Cc initialized"],
+      "postconditions": ["No-op"],
+      "tested": true
+    },
+    {
+      "name": "CubicCongestionControlGetNetworkStatistics",
+      "signature": "void CubicCongestionControlGetNetworkStatistics(_In_ const QUIC_CONNECTION* Connection, _In_ const QUIC_CONGESTION_CONTROL* Cc, _Out_ QUIC_NETWORK_STATISTICS* NetworkStatistics)",
+      "preconditions": ["All params != NULL"],
+      "postconditions": ["NetworkStatistics populated"],
+      "tested": true
+    }
+  ],
+  "state_machine": {
+    "states": ["SLOW_START", "CONSERVATIVE_SLOW_START", "CONGESTION_AVOIDANCE", "RECOVERY", "PERSISTENT_CONGESTION"],
+    "hystart_states": ["HYSTART_NOT_STARTED", "HYSTART_ACTIVE", "HYSTART_DONE"]
+  },
+  "test_gaps": [
+    "OnSpuriousCongestionEvent with non-recovery state",
+    "Congestion avoidance CUBIC formula edge cases",
+    "HyStart++ CSS rounds countdown",
+    "Persistent congestion recovery",
+    "Pacing overflow scenarios",
+    "AIMD window growth before/after WindowPrior",
+    "Recovery exit on exact RecoverySentPacketNumber boundary",
+    "Multiple sequential congestion events",
+    "Time-based idle detection in congestion avoidance"
+  ]
+}
