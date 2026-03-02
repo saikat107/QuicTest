@@ -1,0 +1,53 @@
+{
+  "test_file": "src/core/unittest/CryptoTlsTest.cpp",
+  "test_name": "ReadInitial_SniWithNonHostnameNameType",
+  "source_file": "src/core/crypto_tls.c",
+  "assertion_quality": {
+    "score": 7,
+    "specificity": 7,
+    "completeness": 7,
+    "relevance": 9,
+    "negative_testing": 6,
+    "issues": []
+  },
+  "mutant_detection_ability": {
+    "score": 7,
+    "estimated_kill_rate": 0.7,
+    "detectable_mutant_types": ["condition_flip", "constant_replacement", "return_value"],
+    "undetectable_mutant_types": ["arithmetic_operator"],
+    "analysis": "Checks ServerName==NULL (catches NameType comparison mutations) and ClientAlpnList!=NULL (catches ALPN path). TEST_QUIC_SUCCEEDED catches status mutations."
+  },
+  "coverage_differential": {
+    "score": 7,
+    "lines_covered": 180,
+    "total_lines": 651,
+    "branches_covered": 40,
+    "total_branches": 152,
+    "line_coverage_percent": 27.6,
+    "branch_coverage_percent": 26.3
+  },
+  "test_design_quality": {
+    "score": 8,
+    "structure": 9,
+    "naming": 9,
+    "maintainability": 8,
+    "robustness": 8,
+    "comment_conformity": 9,
+    "issues": [],
+    "comment_analysis": {
+      "has_description": true,
+      "description_matches_behavior": true,
+      "misleading_comments": []
+    }
+  },
+  "overall_assessment": {
+    "score": 7,
+    "grade": "B",
+    "summary": "Well-structured test that exercises the non-hostname NameType branch in SNI parsing with appropriate assertions.",
+    "strengths": ["Clear AAA structure", "Descriptive naming", "Tests specific branch path", "Proper cleanup"],
+    "weaknesses": ["Could verify ServerNameLength is 0", "Only 3 assertions"],
+    "recommendations": [
+      {"priority": "low", "action": "Add ASSERT_EQ(info.ServerNameLength, 0) for completeness"}
+    ]
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "test_file": "src/core/unittest/CryptoTlsTest.cpp",
+  "test_name": "ReadInitial_SniMultipleEntriesFirstNonHostname",
+  "source_file": "src/core/crypto_tls.c",
+  "assertion_quality": {
+    "score": 9,
+    "specificity": 9,
+    "completeness": 9,
+    "relevance": 9,
+    "negative_testing": 7,
+    "issues": []
+  },
+  "mutant_detection_ability": {
+    "score": 8,
+    "estimated_kill_rate": 0.8,
+    "detectable_mutant_types": ["condition_flip", "constant_replacement", "return_value", "string_comparison"],
+    "undetectable_mutant_types": [],
+    "analysis": "Checks exact ServerName content via memcmp, exact length=4, non-null. Would catch NameType comparison mutations, Found flag mutations, and name extraction bugs."
+  },
+  "coverage_differential": {
+    "score": 7,
+    "lines_covered": 185,
+    "total_lines": 651,
+    "branches_covered": 42,
+    "total_branches": 152,
+    "line_coverage_percent": 28.4,
+    "branch_coverage_percent": 27.6
+  },
+  "test_design_quality": {
+    "score": 9,
+    "structure": 9,
+    "naming": 9,
+    "maintainability": 8,
+    "robustness": 9,
+    "comment_conformity": 9,
+    "issues": [],
+    "comment_analysis": {
+      "has_description": true,
+      "description_matches_behavior": true,
+      "misleading_comments": []
+    }
+  },
+  "overall_assessment": {
+    "score": 8,
+    "grade": "B",
+    "summary": "Excellent test with strong assertions that verifies SNI loop iteration with mixed NameType entries.",
+    "strengths": ["Exact value assertions (memcmp, length)", "Tests loop iteration logic", "Multi-entry SNI payload", "Proper cleanup"],
+    "weaknesses": [],
+    "recommendations": []
+  }
+}

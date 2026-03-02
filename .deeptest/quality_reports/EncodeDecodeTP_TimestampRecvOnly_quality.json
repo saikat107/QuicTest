@@ -1,0 +1,51 @@
+{
+  "test_file": "src/core/unittest/CryptoTlsTest.cpp",
+  "test_name": "EncodeDecodeTP_TimestampRecvOnly",
+  "source_file": "src/core/crypto_tls.c",
+  "assertion_quality": {
+    "score": 8,
+    "specificity": 8,
+    "completeness": 8,
+    "relevance": 9,
+    "negative_testing": 7,
+    "issues": []
+  },
+  "mutant_detection_ability": {
+    "score": 8,
+    "estimated_kill_rate": 0.8,
+    "detectable_mutant_types": ["condition_flip", "shift_operator", "constant_replacement", "bitwise_operator"],
+    "undetectable_mutant_types": [],
+    "analysis": "Checks both SEND_ENABLED (FALSE) and RECV_ENABLED (TRUE). Would catch flag shift mutations, wrong constant values, and bitwise operator changes."
+  },
+  "coverage_differential": {
+    "score": 7,
+    "lines_covered": 200,
+    "total_lines": 651,
+    "branches_covered": 45,
+    "total_branches": 152,
+    "line_coverage_percent": 30.7,
+    "branch_coverage_percent": 29.6
+  },
+  "test_design_quality": {
+    "score": 8,
+    "structure": 9,
+    "naming": 9,
+    "maintainability": 8,
+    "robustness": 9,
+    "comment_conformity": 9,
+    "issues": [],
+    "comment_analysis": {
+      "has_description": true,
+      "description_matches_behavior": true,
+      "misleading_comments": []
+    }
+  },
+  "overall_assessment": {
+    "score": 8,
+    "grade": "B",
+    "summary": "Good roundtrip test for timestamp recv-only flag that verifies correct flag isolation through encode/decode.",
+    "strengths": ["Tests both positive and negative flag assertions", "Roundtrip encode/decode", "RAII cleanup with TPScope"],
+    "weaknesses": [],
+    "recommendations": []
+  }
+}
