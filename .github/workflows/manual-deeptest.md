@@ -40,6 +40,7 @@ permissions:
   contents: read
   issues: read
   pull-requests: read
+timeout-minutes: 360
 concurrency:
   group: "gh-aw-${{ inputs.component }}"
 tools:
@@ -103,35 +104,4 @@ Generate comprehensive tests for the **${{ env.COMPONENT }}** component.
 
 ## Instructions
 
-You must never attempt to run `git push` as it is not supported in this environment.
-
-1. Analyze the source file at `${{ env.SOURCE }}`{{#if env.HEADER}} and header at `${{ env.HEADER }}`{{/if}}.
-
-2. {{#if env.FOCAL}}Target the specific function `${{ env.FOCAL }}` for test generation.{{else}}Generate tests for the entire component.{{/if}}
-
-3. {{#if env.HARNESS}}Add tests to the existing harness at `${{ env.HARNESS }}`.{{else}}Determine the appropriate test file to add tests to, or create a new one if needed (update CMakeLists.txt accordingly).{{/if}}. Name the generated tests as `DeepTest*`, so that they can be run as `-Filter *DeepTest*` with GTest.
-
-4. Iterate up to 5 times to improve coverage:
-   - Generate high-quality tests using the **unit-test** skill (if focal function specified) or **component-test** skill. In the case of component-test, don't just write unit test, do your best to maximize coverage by generating integration tests as well. 
-   - Compute coverage using `scripts/make-coverage.sh`. Make sure all the test pass and are of high quality. Feel free to use `test-quality-checker` skill for measuring quality of a test.
-   - Stop early only if 100% coverage is achieved
-
-5. Store the final coverage report at `${{ env.COVERAGE_RESULT }}`.
-
-6. Prepare commit and create PR:
-   a. Verify you have staged changes: run `git status --short` and print the output.
-   b. Run `scripts/create-commit-for-safe-outputs.sh` to commit the changes.
-   c. Print the commit summary: run `git log --oneline -1` and `git diff-tree --no-commit-id --name-only -r HEAD` to log the commit hash and changed files.
-   d. Call the `create_pull_request` safe output tool with:
-      - Title: "Tests for ${{ env.COMPONENT }}"
-      - Body: Include the initial coverage percentage, final/updated coverage percentage, coverage improvement delta, number of tests added, and workflow run ${{ github.run_id }}
-   e. Print the result of the `create_pull_request` tool call to confirm the PR was requested.
-
-7. If no staged changes, use `noop` with message "No test changes generated for ${{ env.COMPONENT }}."
-
-## Constraints
-
-- Code changes must only happen within the `src/` folder. If you notice any changes outside, revert them with `git restore` and print warnings.
-- You must complete at least 5 iterations if coverage is below 100%.
-- Do NOT stop before 5 iterations even if coverage improvements seem minimal.
-- Before committing, make sure the project build successfully and all the newly added tests pass. 
+You must never attempt to run `git push` as it is not supported in this environment. Run **`DeepTest`** agent from .github/agents/DeepTest.md with appropriate paramters. 
