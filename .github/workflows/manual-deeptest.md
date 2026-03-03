@@ -59,7 +59,7 @@ env:
 engine:
   id: copilot
   agent: DeepTest
-  model: "Claude Opus 4.6"
+  model: "claude-opus-4.6-fast"
 safe-outputs:
   create-pull-request:
     title-prefix: "[Deep Test]"
@@ -96,13 +96,15 @@ Generate comprehensive tests for the **${{ env.COMPONENT }}** component.
 
 ## Inputs
 
-- **Component**: `${{ env.COMPONENT }}`
-- **Source**: `${{ env.SOURCE }}`
-- **Header**: `${{ env.HEADER }}`
-- **Focal function**: `${{ env.FOCAL }}`
-- **Test harness**: `${{ env.HARNESS }}`
-- **Index directory**: `${{ env.INDEX_DIR }}`
-- **Coverage output**: `${{ env.COVERAGE_RESULT }}`
+- **component**: `${{ env.COMPONENT }}`
+- **source**: `${{ env.SOURCE }}`
+- **header**: `${{ env.HEADER }}`
+- **focal**: `${{ env.FOCAL }}`
+- **harness**: `${{ env.HARNESS }}`
+- **build**: `pwsh scripts/build.ps1 -CodeCoverage`
+- **test**: `pwsh scripts/test.ps1 -CodeCoverage -Filter *DeepTest_${{ env.COMPONENT }}`
+- **index_dir**: `${{ env.INDEX_DIR }}`
+- **coverage_result**: `${{ env.COVERAGE_RESULT }}`
 
 ## Instructions
 
