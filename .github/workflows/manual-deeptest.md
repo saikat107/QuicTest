@@ -56,10 +56,10 @@ env:
   INDEX_DIR: ${{ inputs.index_dir }}
   COVERAGE_RESULT: ${{ inputs.coverage_result }}
   GH_AW_DIR: /tmp/gh-aw
-timeout-minutes: 40
 engine:
   id: copilot
   agent: DeepTest
+  model: "Claude Opus 4.6"
 safe-outputs:
   create-pull-request:
     title-prefix: "[Deep Test]"
