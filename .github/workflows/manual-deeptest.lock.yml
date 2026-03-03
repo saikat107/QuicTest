@@ -21,7 +21,7 @@
 #
 # Manually trigger DeepTest agent to generate tests for a specified component
 #
-# frontmatter-hash: bb795514e5d236e36667f6b52a299799c8d1b8c70b3e9ef8b6e64564ce40b9c7
+# frontmatter-hash: 0f0eaea1d5b774ba16f65bc1e4f5f50d186a3ed37e409a9b027a5effdb9d8852
 
 name: "DeepTest Manual Workflow"
 "on":
@@ -138,7 +138,8 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # 8e8c483db84b4bee98b60c0593521ed34d9990e8
         with:
           fetch-depth: 1
-          submodules: recursive
+          lfs: true
+          submodules: true
       - name: Prepare machine for code coverage
         run: pwsh scripts/prepare-machine.ps1 -InstallCodeCoverage
       - name: Create working directory

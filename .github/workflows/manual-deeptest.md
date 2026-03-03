@@ -74,7 +74,8 @@ steps:
     uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
     with:
       fetch-depth: 1
-      submodules: recursive
+      submodules: true
+      lfs: true
   - name: Prepare machine for code coverage
     run: pwsh scripts/prepare-machine.ps1 -InstallCodeCoverage
   - name: Create working directory
