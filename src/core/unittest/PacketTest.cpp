@@ -95,7 +95,7 @@ protected:
 // QUIC_VERSION_* are #define literals and cannot be addressed with &.
 //
 static void
-WriteVersion(
+WriteVersionToBuffer(
     _Out_writes_(sizeof(uint32_t)) uint8_t* Dest,
     _In_ uint32_t Version
     )
@@ -361,7 +361,7 @@ TEST_F(DeepTest_Packet, ValidateInvariant_LongHeaderWithCids)
     CxPlatZeroMemory(Buffer, sizeof(Buffer));
     Buffer[0] = 0xC0;
     // Version at 1..4 = QUIC_VERSION_1
-    WriteVersion(Buffer + 1, QUIC_VERSION_1);
+    WriteVersionToBuffer(Buffer + 1, QUIC_VERSION_1);
     Buffer[5] = 4; // DestCidLength
     Buffer[6] = 0xAA; Buffer[7] = 0xBB; Buffer[8] = 0xCC; Buffer[9] = 0xDD; // DestCid
     Buffer[10] = 4; // SourceCidLength
@@ -392,7 +392,7 @@ TEST_F(DeepTest_Packet, ValidateInvariant_CidMatchSecondPacket)
     uint8_t Buffer[64];
     CxPlatZeroMemory(Buffer, sizeof(Buffer));
     Buffer[0] = 0xC0;
-    WriteVersion(Buffer + 1, QUIC_VERSION_1);
+    WriteVersionToBuffer(Buffer + 1, QUIC_VERSION_1);
     Buffer[5] = 4; // DestCidLength
     Buffer[6] = 0xAA; Buffer[7] = 0xBB; Buffer[8] = 0xCC; Buffer[9] = 0xDD;
     Buffer[10] = 4; // SourceCidLength
@@ -435,7 +435,7 @@ TEST_F(DeepTest_Packet, ValidateInvariant_CidMismatchSecondPacket)
     uint8_t Buffer1[64];
     CxPlatZeroMemory(Buffer1, sizeof(Buffer1));
     Buffer1[0] = 0xC0;
-    WriteVersion(Buffer1 + 1, QUIC_VERSION_1);
+    WriteVersionToBuffer(Buffer1 + 1, QUIC_VERSION_1);
     Buffer1[5] = 4;
     Buffer1[6] = 0xAA; Buffer1[7] = 0xBB; Buffer1[8] = 0xCC; Buffer1[9] = 0xDD;
     Buffer1[10] = 4;
@@ -454,7 +454,7 @@ TEST_F(DeepTest_Packet, ValidateInvariant_CidMismatchSecondPacket)
     uint8_t Buffer2[64];
     CxPlatZeroMemory(Buffer2, sizeof(Buffer2));
     Buffer2[0] = 0xC0;
-    WriteVersion(Buffer2 + 1, QUIC_VERSION_1);
+    WriteVersionToBuffer(Buffer2 + 1, QUIC_VERSION_1);
     Buffer2[5] = 4;
     Buffer2[6] = 0xFF; Buffer2[7] = 0xBB; Buffer2[8] = 0xCC; Buffer2[9] = 0xDD;
     Buffer2[10] = 4;
@@ -1014,4 +1014,30 @@ TEST_F(DeepTest_Packet, LogHeader_LongHeaderHandshake)
     // Should not crash.
     //
     QuicPacketLogHeader(NULL, FALSE, 0, 0, TotalLen, Buffer, QUIC_VERSION_1);
+}
+
+TEST_F(DeepTest_Packet, LogHeader_WithConnection)
+{
+    uint8_t Buffer[64];
+    CxPlatZeroMemory(Buffer, sizeof(Buffer));
+
+    //
+    // Build a minimal short header.
+    //
+    QUIC_SHORT_HEADER_V1* SH = (QUIC_SHORT_HEADER_V1*)Buffer;
+    SH->IsLongHeader = FALSE;
+    SH->FixedBit = 1;
+    SH->SpinBit = 0;
+    SH->KeyPhase = 0;
+
+    //
+    // Create a minimal Connection object to test the non-NULL path.
+    //
+    QUIC_CONNECTION Connection {};
+    Connection._.Type = QUIC_HANDLE_TYPE_CONNECTION_SERVER;
+
+    //
+    // Should not crash with a valid connection object.
+    //
+    QuicPacketLogHeader(&Connection, TRUE, 0, 1, sizeof(Buffer), Buffer, QUIC_VERSION_1);
 }
