@@ -27,6 +27,7 @@ set(SOURCES
     PacketBuilderTest.cpp
     PacketNumberTest.cpp
     PacketSpaceTest.cpp
+    PacketTest.cpp
     PartitionTest.cpp
     PathTest.cpp
     RangeTest.cpp
@@ -47,6 +48,7 @@ set(SOURCES
     TransportParamTest.cpp
     VarIntTest.cpp
     VersionNegExtTest.cpp
+    VersionNegTest.cpp
     WorkerTest.cpp
 )
 
